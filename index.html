@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>File Tracker — Assistant / Junior</title>
+
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --accent:#0b63d6;
+      --muted:#6b7280;
+      --success:#0f5132;
+      --warning:#b45309;
+      --info:#0b63d6;
+      --radius:10px;
+      --gap:12px;
+      --glass: rgba(11,99,214,0.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:var(--bg);
+      color:#0f172a;
+      -webkit-font-smoothing:antialiased;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:20px;
+    }
+    .wrap{width:100%;max-width:1150px}
+    header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
+    .brand{display:flex;flex-direction:column;gap:6px}
+    .brand h1{margin:0;font-size:20px;color:var(--accent);letter-spacing:0.2px}
+    .brand p{margin:0;font-size:13px;color:var(--muted)}
+    .top-quote{
+      margin-top:6px;padding:10px 12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdff);
+      border:1px solid #eef6ff;font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:10px;max-width:640px;
+    }
+    .role-switch{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center}
+
+    .layout{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:1000px){ .layout{grid-template-columns:300px 1fr 280px} }
+
+    .card{background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(2,6,23,0.04);border:1px solid #eef6ff}
+    .small{font-size:13px;color:var(--muted)}
+    .summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(min-width:420px){ .summary-grid{grid-template-columns:repeat(4,1fr)} }
+
+    .summary-item{padding:12px;border-radius:8px;background:#fff;border:1px solid #f1f7ff;display:flex;flex-direction:column;gap:6px}
+    .summary-item .num{font-weight:700;font-size:18px;color:#0f172a}
+    .summary-item .label{font-size:13px;color:var(--muted)}
+
+    .center-col{display:flex;flex-direction:column;gap:12px}
+
+    .filters{display:flex;gap:8px;margin-bottom:10px}
+    .filters input{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff}
+    .filters select{padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff}
+
+    .file-list{list-style:none;padding:0;margin:0}
+    .file-item{display:flex;flex-direction:column;padding:12px;border-radius:10px;border:1px solid #eef4ff;margin-bottom:12px;background:linear-gradient(180deg,#fff,#fbfdff)}
+    .file-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .file-left{display:flex;flex-direction:column;gap:6px}
+    .meta{font-size:13px;color:var(--muted)}
+    .status-pill{font-weight:700;padding:6px 10px;border-radius:999px;font-size:13px;background:var(--glass);color:var(--info);border:1px solid rgba(11,99,214,0.12)}
+    .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .btn{padding:8px 10px;border-radius:10px;border:1px solid #e6eef8;background:#fff;color:var(--accent);cursor:pointer;font-size:13px}
+
+    /* Prominent next-action pill */
+    .next-action{
+      display:flex;flex-direction:column;align-items:flex-end;gap:6px;
+    }
+    .next-label{font-size:12px;color:var(--muted)}
+    .next-date{
+      font-size:18px;
+      font-weight:800;
+      color:#0b63d6;
+      background:#f1f8ff;
+      padding:8px 12px;
+      border-radius:12px;
+      border:1px solid #e6f0ff;
+      min-width:120px;
+      text-align:center;
+      box-shadow:0 2px 6px rgba(11,99,214,0.04);
+    }
+
+    .split-list{display:flex;flex-direction:column;gap:10px}
+    .split-item{padding:12px;border-radius:10px;border:1px solid #eef4ff;background:#fff;display:flex;justify-content:space-between;align-items:center}
+    .split-item .count{font-weight:700;color:#0f172a}
+    .split-item .label{font-size:13px;color:var(--muted)}
+
+    .fab{
+      position:fixed;right:22px;bottom:22px;width:60px;height:60px;border-radius:50%;
+      background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;
+      box-shadow:0 10px 30px rgba(11,99,214,0.18);cursor:pointer;font-size:28px;
+    }
+
+    .modal-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.35);display:none;align-items:center;justify-content:center;padding:20px}
+    .modal{width:100%;max-width:560px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 12px 40px rgba(2,6,23,0.18)}
+    .modal h3{margin:0 0 8px 0;font-size:18px}
+    .row{display:flex;gap:10px}
+    .row > *{flex:1}
+    input[type="text"], input[type="date"], select, textarea{padding:10px;border:1px solid #e6eef8;border-radius:10px;font-size:14px;width:100%;background:#fbfdff}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    .primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+    .secondary{background:#fff;border:1px solid #e6eef8;padding:10px 14px;border-radius:10px;cursor:pointer}
+
+    footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
+    .badge{padding:6px 10px;border-radius:999px;font-size:12px;background:#f1f8ff;color:var(--info);border:1px solid #e6f0ff}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>File Tracker</h1>
+        <p class="small">Assistant & Junior Assistant — minimal, mobile-first</p>
+        <div class="top-quote" id="quote">Loading motivational quote…</div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <div class="role-switch" aria-hidden>
+          <label><input type="radio" name="role" value="junior" checked> Junior</label>
+          <label><input type="radio" name="role" value="assistant"> Assistant</label>
+        </div>
+        <div class="small">Signed in as <span class="badge" id="userRoleBadge">Junior</span></div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- Left: Summary -->
+      <div class="card">
+        <h3 style="margin:0 0 10px 0">Summary</h3>
+        <div class="summary-grid" id="summaryGrid">
+          <div class="summary-item">
+            <div class="num" id="totalFiles">0</div>
+            <div class="label">Total Files</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" id="pendingCount">0</div>
+            <div class="label">Pending</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" id="closedCount">0</div>
+            <div class="label">Closed</div>
+          </div>
+          <div class="summary-item">
+            <div class="num" id="balanceCount">0</div>
+            <div class="label">Balance</div>
+          </div>
+        </div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid #eef6ff" />
+
+        <div class="small" style="margin-bottom:8px">Quick actions</div>
+        <div style="display:flex;gap:8px">
+          <button class="secondary btn" id="exportBtn" title="(Demo) Export not implemented">Export</button>
+          <button class="secondary btn" id="clearBtn">Clear Demo Data</button>
+        </div>
+      </div>
+
+      <!-- Center: File list -->
+      <div class="center-col">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <h3 style="margin:0">My Assigned Files</h3>
+            <div class="small">Showing files for <strong id="roleLabel">Junior</strong></div>
+          </div>
+
+          <div class="filters">
+            <input id="search" type="text" placeholder="Search by subject or ID" />
+            <select id="statusFilter">
+              <option value="">All</option>
+              <option>Pending</option>
+              <option>Forwarded</option>
+            </select>
+          </div>
+
+          <ul id="fileList" class="file-list" aria-live="polite"></ul>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 8px 0">Pending Files — Age Split</h3>
+          <div class="split-list">
+            <div class="split-item">
+              <div><div class="label">Less than 3 months</div></div>
+              <div class="count" id="split_lt3">0</div>
+            </div>
+            <div class="split-item">
+              <div><div class="label">3 to 6 months</div></div>
+              <div class="count" id="split_3_6">0</div>
+            </div>
+            <div class="split-item">
+              <div><div class="label">6 months to 1 year</div></div>
+              <div class="count" id="split_6_12">0</div>
+            </div>
+            <div class="split-item">
+              <div><div class="label">Over 1 year</div></div>
+              <div class="count" id="split_gt12">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Pending close & balance -->
+      <div class="card">
+        <h3 style="margin:0 0 8px 0">Pending Close & Balance</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="small">Pending Close</div>
+            <div id="pendingClose" class="small">0</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="small">Balance</div>
+            <div id="balance" class="small">0</div>
+          </div>
+          <hr style="margin:6px 0;border:none;border-top:1px solid #eef6ff" />
+          <div class="small">Notes</div>
+          <div class="small" style="color:var(--muted)">Closed files are archived and removed from the assigned list. Balance = Total - Closed.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer><small>Prototype — local demo. Holiday list editable in script for production use.</small></footer>
+  </div>
+
+  <!-- Floating Add button -->
+  <button class="fab" id="openForm" title="Add file">+</button>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal" role="document">
+      <h3>Add / Register File</h3>
+      <form id="modalForm" autocomplete="off">
+        <input id="m_subject" name="subject" type="text" placeholder="Subject (brief)" required />
+        <input id="m_sender" name="sender" type="text" placeholder="Sender (office/person)" />
+        <div class="row" style="margin-top:8px">
+          <select id="m_priority" name="priority" aria-label="Priority">
+            <option value="Normal">Normal</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+          <select id="m_assignTo" name="assignTo" aria-label="Assign to">
+            <option>Junior Assistant</option>
+            <option>Assistant</option>
+          </select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input id="m_receivedDate" name="receivedDate" type="date" aria-label="Date of receipt" />
+          <input id="m_dueDate" name="dueDate" type="date" aria-label="Action date (optional)" />
+        </div>
+        <div style="margin-top:10px" class="small">Next action will be auto-calculated (30 days rule; weekends & holidays adjusted)</div>
+
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="cancelModal">Cancel</button>
+          <button type="submit" class="primary">Add File</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /* Professional minimal UI bundle
+       - Keeps previous features
+       - Closed files removed from "My Assigned Files" (archived)
+       - Next action date visually prominent (larger pill)
+       - Dates displayed as DD-MM-YYYY
+       - LocalStorage persistence for demo
+    */
+
+    const STORAGE_KEY = 'file-tracker-v4';
+    const HOLIDAYS = [
+      // Maintain official holidays here (YYYY-MM-DD)
+      '2026-01-26','2026-04-14','2026-05-01','2026-08-15','2026-10-02','2026-11-04'
+    ];
+
+    const QUOTES = [
+      "Small consistent steps move big files forward.",
+      "Clarity, action, accountability — repeat.",
+      "A tracked file is a closed file in waiting.",
+      "Do the next right thing for the file today.",
+      "Organize, act, record — build trust with every step."
+    ];
+
+    // Elements
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const openFormBtn = document.getElementById('openForm');
+    const cancelModalBtn = document.getElementById('cancelModal');
+    const modalForm = document.getElementById('modalForm');
+    const fileList = document.getElementById('fileList');
+    const search = document.getElementById('search');
+    const statusFilter = document.getElementById('statusFilter');
+    const roleRadios = document.querySelectorAll('input[name="role"]');
+    const roleLabel = document.getElementById('roleLabel');
+    const userRoleBadge = document.getElementById('userRoleBadge');
+
+    const totalFilesEl = document.getElementById('totalFiles');
+    const pendingCountEl = document.getElementById('pendingCount');
+    const closedCountEl = document.getElementById('closedCount');
+    const balanceCountEl = document.getElementById('balanceCount');
+    const pendingCloseEl = document.getElementById('pendingClose');
+    const balanceEl = document.getElementById('balance');
+
+    const split_lt3 = document.getElementById('split_lt3');
+    const split_3_6 = document.getElementById('split_3_6');
+    const split_6_12 = document.getElementById('split_6_12');
+    const split_gt12 = document.getElementById('split_gt12');
+
+    const quoteEl = document.getElementById('quote');
+    let quoteIndex = 0;
+
+    let files = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+    // Utilities
+    function uid(){ return 'F' + Date.now().toString(36).slice(-6); }
+    function parseDateInput(v){ return v ? new Date(v + 'T00:00:00') : null; }
+    function toISODate(d){ if(!d) return null; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+    function toDisplayFromISO(iso){ if(!iso) return '—'; const parts = iso.split('-'); if(parts.length !== 3) return iso; return `${parts[2]}-${parts[1]}-${parts[0]}`; }
+    function addDays(d, days){ const r=new Date(d); r.setDate(r.getDate()+days); return r; }
+    function isWeekend(d){ const wd=d.getDay(); return wd===0||wd===6; }
+    function isHoliday(d){ return HOLIDAYS.includes(toISODate(d)); }
+    function adjustForWeekendAndHolidays(d){ let candidate=new Date(d); while(isWeekend(candidate) || isHoliday(candidate)){ candidate = addDays(candidate,1); } return candidate; }
+    function computeNextActionDate(baseDate){ if(!baseDate) return null; const plus30 = addDays(baseDate,30); return adjustForWeekendAndHolidays(plus30); }
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // Modal controls
+    openFormBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='flex'; document.getElementById('m_subject').focus(); });
+    cancelModalBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='none'; modalForm.reset(); });
+    modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop){ modalBackdrop.style.display='none'; modalForm.reset(); } });
+
+    // Role switch
+    function getRole(){ return document.querySelector('input[name="role"]:checked').value; }
+    roleRadios.forEach(r => r.addEventListener('change', ()=>{ const rname = getRole().charAt(0).toUpperCase() + getRole().slice(1); roleLabel.textContent = rname; userRoleBadge.textContent = rname; render(); }));
+
+    // Form submit
+    modalForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const subject = document.getElementById('m_subject').value.trim();
+      if(!subject) return;
+      const sender = document.getElementById('m_sender').value.trim();
+      const priority = document.getElementById('m_priority').value;
+      const assignTo = document.getElementById('m_assignTo').value;
+      const receivedDateInput = document.getElementById('m_receivedDate').value;
+      const dueDateInput = document.getElementById('m_dueDate').value;
+      const baseDate = parseDateInput(dueDateInput) || parseDateInput(receivedDateInput) || new Date();
+      const nextAction = computeNextActionDate(baseDate);
+
+      const file = {
+        id: uid(),
+        subject,
+        sender,
+        priority,
+        assignedTo: assignTo,
+        receivedDateISO: toISODate(parseDateInput(receivedDateInput) || new Date()),
+        dueDateISO: toISODate(parseDateInput(dueDateInput) || null),
+        nextActionISO: toISODate(nextAction),
+        status: 'Pending',
+        createdAt: new Date().toISOString(),
+        history: [{when:new Date().toISOString(), by:getRole(), action:'Created'}]
+      };
+      files.unshift(file);
+      saveAndRender();
+      modalBackdrop.style.display='none';
+      modalForm.reset();
+    });
+
+    function saveAndRender(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(files)); render(); }
+
+    // Change status: when Closed, file is archived (removed from assigned list)
+    function changeStatus(id, status){
+      const f = files.find(x => x.id === id);
+      if(!f) return;
+      f.status = status;
+      f.history.push({when:new Date().toISOString(), by:getRole(), action:status});
+      if(status === 'Forwarded' || status === 'Noted'){
+        const base = f.nextActionISO ? parseDateInput(f.nextActionISO) : new Date();
+        const next = computeNextActionDate(base);
+        f.nextActionISO = toISODate(next);
+      }
+      saveAndRender();
+    }
+
+    // Render UI
+    function render(){
+      const role = getRole();
+      const q = (search.value || '').trim().toLowerCase();
+      const status = statusFilter.value;
+
+      // Visible list excludes Closed files (archived)
+      const visible = files.filter(f => {
+        if(f.status === 'Closed') return false;
+        if(!f.assignedTo.toLowerCase().includes(role)) return false;
+        if(status && f.status !== status) return false;
+        if(q && !(f.subject.toLowerCase().includes(q) || f.id.toLowerCase().includes(q))) return false;
+        return true;
+      });
+
+      fileList.innerHTML = '';
+      if(visible.length === 0){
+        fileList.innerHTML = '<li class="file-item"><div class="file-top"><div class="file-left"><strong>No files</strong></div></div></li>';
+      } else {
+        visible.forEach(f => {
+          const li = document.createElement('li');
+          li.className = 'file-item';
+          const statusColor = f.status === 'Pending' ? 'var(--warning)' : 'var(--info)';
+          const receivedDisplay = f.receivedDateISO ? toDisplayFromISO(f.receivedDateISO) : '—';
+          const dueDisplay = f.dueDateISO ? toDisplayFromISO(f.dueDateISO) : '—';
+          const nextDisplay = f.nextActionISO ? toDisplayFromISO(f.nextActionISO) : '—';
+          li.innerHTML = `
+            <div class="file-top">
+              <div class="file-left">
+                <strong>${escapeHtml(f.subject)}</strong>
+                <div class="meta">${f.id} • ${f.priority} • ${escapeHtml(f.sender || '—')}</div>
+                <div class="small" style="margin-top:6px;color:var(--muted)">Received: ${receivedDisplay} • Due: ${dueDisplay}</div>
+              </div>
+              <div class="next-action">
+                <div class="status-pill" style="background:transparent;border:1px solid rgba(11,99,214,0.06);color:${statusColor}">${f.status}</div>
+                <div class="next-label">Next</div>
+                <div class="next-date">${nextDisplay}</div>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn" data-id="${f.id}" data-action="Noted">Noted</button>
+              <button class="btn" data-id="${f.id}" data-action="Forwarded">Forward</button>
+              <button class="btn" data-id="${f.id}" data-action="Closed">Close</button>
+            </div>
+          `;
+          fileList.appendChild(li);
+        });
+        document.querySelectorAll('.btn').forEach(b => b.onclick = () => changeStatus(b.dataset.id, b.dataset.action));
+      }
+
+      // Summaries (counts include archived closed files)
+      const total = files.length;
+      const closed = files.filter(f => f.status === 'Closed').length;
+      const pending = files.filter(f => f.status !== 'Closed').length;
+      const balance = total - closed;
+
+      totalFilesEl.textContent = total;
+      pendingCountEl.textContent = pending;
+      closedCountEl.textContent = closed;
+      balanceCountEl.textContent = balance;
+      pendingCloseEl.textContent = files.filter(f => f.status === 'Pending' && f.nextActionISO).length;
+      balanceEl.textContent = balance;
+
+      // Splits by age (exclude closed)
+      const now = new Date();
+      let lt3=0, _3_6=0, _6_12=0, gt12=0;
+      files.filter(f => f.status !== 'Closed').forEach(f => {
+        const created = new Date(f.createdAt);
+        const months = monthDiff(created, now);
+        if(months < 3) lt3++;
+        else if(months < 6) _3_6++;
+        else if(months < 12) _6_12++;
+        else gt12++;
+      });
+      split_lt3.textContent = lt3;
+      split_3_6.textContent = _3_6;
+      split_6_12.textContent = _6_12;
+      split_gt12.textContent = gt12;
+    }
+
+    function monthDiff(d1, d2){
+      return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    }
+
+    // Events
+    search.addEventListener('input', render);
+    statusFilter.addEventListener('change', render);
+    document.getElementById('clearBtn').addEventListener('click', ()=>{
+      if(confirm('Clear demo data? This will remove all local entries.')){ files=[]; saveAndRender(); }
+    });
+
+    // Quote rotation
+    function rotateQuote(){ quoteEl.textContent = QUOTES[quoteIndex % QUOTES.length]; quoteIndex++; }
+    rotateQuote();
+    setInterval(rotateQuote, 10000);
+
+    render();
+
+    // Admin/testing helpers
+    window.__FILE_TRACKER = {
+      computeNextActionDate,
+      HOLIDAYS,
+      setHolidays: (arr) => { if(Array.isArray(arr)){ while(HOLIDAYS.length) HOLIDAYS.pop(); arr.forEach(d => HOLIDAYS.push(d)); } },
+      addSample: (n=6) => {
+        for(let i=0;i<n;i++){
+          const now = new Date();
+          const created = addDays(now, -Math.floor(Math.random()*500));
+          const base = addDays(created, Math.floor(Math.random()*10));
+          const next = computeNextActionDate(base);
+          files.unshift({
+            id: uid(),
+            subject: 'Sample file '+(i+1),
+            sender:'Dept',
+            priority:['Normal','High','Urgent'][Math.floor(Math.random()*3)],
+            assignedTo: Math.random()>0.5?'Junior Assistant':'Assistant',
+            receivedDateISO: toISODate(created),
+            dueDateISO: null,
+            nextActionISO: toISODate(next),
+            status: ['Pending','Forwarded','Closed'][Math.floor(Math.random()*3)],
+            createdAt: created.toISOString(),
+            history: []
+          });
+        }
+        saveAndRender();
+      }
+    };
+
+    // Service worker scaffold registration (optional)
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    }
+  </script>
+</body>
+</html>
