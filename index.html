@@ -3,7 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>File Tracker — Assistant / Junior</title>
+  <title>FileBuddy — File Tracker & Tasks</title>
+
+  <!-- Chart.js for minimal graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     :root{
@@ -31,7 +34,7 @@
       justify-content:center;
       padding:20px;
     }
-    .wrap{width:100%;max-width:1150px}
+    .wrap{width:100%;max-width:1200px}
     header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
     .brand{display:flex;flex-direction:column;gap:6px}
     .brand h1{margin:0;font-size:20px;color:var(--accent);letter-spacing:0.2px}
@@ -42,8 +45,9 @@
     }
     .role-switch{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center}
 
+    /* Two-column vertical split: left = files, right = tasks */
     .layout{display:grid;grid-template-columns:1fr;gap:14px}
-    @media(min-width:1000px){ .layout{grid-template-columns:300px 1fr 280px} }
+    @media(min-width:1100px){ .layout{grid-template-columns:1fr 460px} }
 
     .card{background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(2,6,23,0.04);border:1px solid #eef6ff}
     .small{font-size:13px;color:var(--muted)}
@@ -54,8 +58,7 @@
     .summary-item .num{font-weight:700;font-size:18px;color:#0f172a}
     .summary-item .label{font-size:13px;color:var(--muted)}
 
-    .center-col{display:flex;flex-direction:column;gap:12px}
-
+    /* File list styles (keeps previous look) */
     .filters{display:flex;gap:8px;margin-bottom:10px}
     .filters input{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff}
     .filters select{padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff}
@@ -69,37 +72,25 @@
     .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
     .btn{padding:8px 10px;border-radius:10px;border:1px solid #e6eef8;background:#fff;color:var(--accent);cursor:pointer;font-size:13px}
 
-    /* Prominent next-action pill */
-    .next-action{
-      display:flex;flex-direction:column;align-items:flex-end;gap:6px;
-    }
-    .next-label{font-size:12px;color:var(--muted)}
-    .next-date{
-      font-size:18px;
-      font-weight:800;
-      color:#0b63d6;
-      background:#f1f8ff;
-      padding:8px 12px;
-      border-radius:12px;
-      border:1px solid #e6f0ff;
-      min-width:120px;
-      text-align:center;
-      box-shadow:0 2px 6px rgba(11,99,214,0.04);
-    }
+    /* Tasks column */
+    #taskColumn{position:relative}
+    .task-list{list-style:none;padding:0;margin:0}
+    .task-item{display:flex;flex-direction:column;padding:12px;border-radius:10px;border:1px solid #eef4ff;margin-bottom:12px;background:linear-gradient(180deg,#fff,#fbfdff)}
+    .task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+    .task-left{display:flex;flex-direction:column;gap:6px}
+    .task-meta{font-size:13px;color:var(--muted)}
+    .task-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
 
-    .split-list{display:flex;flex-direction:column;gap:10px}
-    .split-item{padding:12px;border-radius:10px;border:1px solid #eef4ff;background:#fff;display:flex;justify-content:space-between;align-items:center}
-    .split-item .count{font-weight:700;color:#0f172a}
-    .split-item .label{font-size:13px;color:var(--muted)}
-
-    .fab{
-      position:fixed;right:22px;bottom:22px;width:60px;height:60px;border-radius:50%;
+    /* Add Task floating button (top-right of tasks column) */
+    .add-task-btn{
+      position:absolute;right:16px;top:12px;width:44px;height:44px;border-radius:50%;
       background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;
-      box-shadow:0 10px 30px rgba(11,99,214,0.18);cursor:pointer;font-size:28px;
+      box-shadow:0 8px 24px rgba(11,99,214,0.18);cursor:pointer;font-size:22px;
     }
 
-    .modal-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.35);display:none;align-items:center;justify-content:center;padding:20px}
-    .modal{width:100%;max-width:560px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 12px 40px rgba(2,6,23,0.18)}
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:60}
+    .modal{width:100%;max-width:720px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 12px 40px rgba(2,6,23,0.18)}
     .modal h3{margin:0 0 8px 0;font-size:18px}
     .row{display:flex;gap:10px}
     .row > *{flex:1}
@@ -108,16 +99,30 @@
     .primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
     .secondary{background:#fff;border:1px solid #e6eef8;padding:10px 14px;border-radius:10px;cursor:pointer}
 
+    /* Progress bar */
+    .progress-bar{height:12px;border-radius:8px;background:#e6eef8;margin-top:8px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),#2b8bf7);width:0%}
+
+    /* Next action pill (files) */
+    .next-action{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .next-label{font-size:12px;color:var(--muted)}
+    .next-date{font-size:16px;font-weight:800;color:#0b63d6;background:#f1f8ff;padding:6px 10px;border-radius:10px;border:1px solid #e6f0ff;min-width:110px;text-align:center}
+
     footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
     .badge{padding:6px 10px;border-radius:999px;font-size:12px;background:#f1f8ff;color:var(--info);border:1px solid #e6f0ff}
+
+    /* Responsive tweaks */
+    @media(max-width:1100px){
+      .add-task-btn{position:fixed;right:18px;top:90px}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="brand">
-        <h1>File Tracker</h1>
-        <p class="small">Assistant & Junior Assistant — minimal, mobile-first</p>
+        <h1>FileBuddy</h1>
+        <p class="small">Assistant & Junior Assistant — File tracker + Task progress</p>
         <div class="top-quote" id="quote">Loading motivational quote…</div>
       </div>
 
@@ -131,9 +136,10 @@
     </header>
 
     <div class="layout">
-      <!-- Left: Summary -->
-      <div class="card">
-        <h3 style="margin:0 0 10px 0">Summary</h3>
+      <!-- Left: File System (keeps old code & features) -->
+      <div class="card" id="fileColumn">
+        <h3 style="margin:0 0 8px 0">File Tracker</h3>
+
         <div class="summary-grid" id="summaryGrid">
           <div class="summary-item">
             <div class="num" id="totalFiles">0</div>
@@ -155,71 +161,61 @@
 
         <hr style="margin:12px 0;border:none;border-top:1px solid #eef6ff" />
 
-        <div class="small" style="margin-bottom:8px">Quick actions</div>
-        <div style="display:flex;gap:8px">
-          <button class="secondary btn" id="exportBtn" title="(Demo) Export not implemented">Export</button>
-          <button class="secondary btn" id="clearBtn">Clear Demo Data</button>
-        </div>
-      </div>
-
-      <!-- Center: File list -->
-      <div class="center-col">
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <h3 style="margin:0">My Assigned Files</h3>
-            <div class="small">Showing files for <strong id="roleLabel">Junior</strong></div>
-          </div>
-
-          <div class="filters">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="filters" style="flex:1">
             <input id="search" type="text" placeholder="Search by subject or ID" />
             <select id="statusFilter">
-              <option value="">All</option>
-              <option>Pending</option>
-              <option>Forwarded</option>
+              <option value="">All</option><option>Pending</option><option>Forwarded</option><option>Closed</option>
             </select>
           </div>
-
-          <ul id="fileList" class="file-list" aria-live="polite"></ul>
+          <div style="margin-left:12px;display:flex;gap:8px">
+            <button class="secondary btn" id="exportBtn" title="(Demo) Export not implemented">Export</button>
+            <button class="secondary btn" id="clearBtn">Clear Demo Data</button>
+          </div>
         </div>
 
-        <div class="card">
-          <h3 style="margin:0 0 8px 0">Pending Files — Age Split</h3>
-          <div class="split-list">
-            <div class="split-item">
-              <div><div class="label">Less than 3 months</div></div>
-              <div class="count" id="split_lt3">0</div>
-            </div>
-            <div class="split-item">
-              <div><div class="label">3 to 6 months</div></div>
-              <div class="count" id="split_3_6">0</div>
-            </div>
-            <div class="split-item">
-              <div><div class="label">6 months to 1 year</div></div>
-              <div class="count" id="split_6_12">0</div>
-            </div>
-            <div class="split-item">
-              <div><div class="label">Over 1 year</div></div>
-              <div class="count" id="split_gt12">0</div>
-            </div>
+        <ul id="fileList" class="file-list" aria-live="polite"></ul>
+
+        <div style="margin-top:12px" class="small">Pending Files — Age Split</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1" class="card">
+            <div class="small">Less than 3 months</div>
+            <div style="font-weight:700" id="split_lt3">0</div>
+          </div>
+          <div style="flex:1" class="card">
+            <div class="small">3 to 6 months</div>
+            <div style="font-weight:700" id="split_3_6">0</div>
+          </div>
+          <div style="flex:1" class="card">
+            <div class="small">6 to 12 months</div>
+            <div style="font-weight:700" id="split_6_12">0</div>
+          </div>
+          <div style="flex:1" class="card">
+            <div class="small">Over 1 year</div>
+            <div style="font-weight:700" id="split_gt12">0</div>
           </div>
         </div>
       </div>
 
-      <!-- Right: Pending close & balance -->
-      <div class="card">
-        <h3 style="margin:0 0 8px 0">Pending Close & Balance</h3>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div class="small">Pending Close</div>
-            <div id="pendingClose" class="small">0</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div class="small">Balance</div>
-            <div id="balance" class="small">0</div>
-          </div>
-          <hr style="margin:6px 0;border:none;border-top:1px solid #eef6ff" />
-          <div class="small">Notes</div>
-          <div class="small" style="color:var(--muted)">Closed files are archived and removed from the assigned list. Balance = Total - Closed.</div>
+      <!-- Right: Tasks column (new) -->
+      <div class="card" id="taskColumn">
+        <h3 style="margin:0 0 8px 0">Tasks — Progress Tracker</h3>
+
+        <!-- Floating add task button (top-right) -->
+        <button class="add-task-btn" id="addTaskBtn" title="Add Task">+</button>
+
+        <div style="margin-top:8px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+          <input id="taskSearch" type="text" placeholder="Search tasks by name or employee" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff" />
+          <select id="taskFilter" style="padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff">
+            <option value="">All Types</option>
+            <option>Salary Bill</option><option>Arrear Bill</option><option>Surrender Bill</option><option>Advances</option>
+          </select>
+        </div>
+
+        <ul id="taskList" class="task-list" aria-live="polite"></ul>
+
+        <div style="margin-top:12px">
+          <canvas id="taskChart" height="180"></canvas>
         </div>
       </div>
     </div>
@@ -227,10 +223,10 @@
     <footer><small>Prototype — local demo. Holiday list editable in script for production use.</small></footer>
   </div>
 
-  <!-- Floating Add button -->
+  <!-- Global floating Add File button (keeps previous) -->
   <button class="fab" id="openForm" title="Add file">+</button>
 
-  <!-- Modal -->
+  <!-- Modal for adding files (keeps previous) -->
   <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
     <div class="modal" role="document">
       <h3>Add / Register File</h3>
@@ -262,20 +258,59 @@
     </div>
   </div>
 
+  <!-- Modal for adding tasks -->
+  <div class="modal-backdrop" id="taskModalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal" role="document">
+      <h3>Add Task</h3>
+      <form id="taskForm" autocomplete="off">
+        <div class="row">
+          <select id="t_type" required>
+            <option value="">Select Task Type</option>
+            <option>Salary Bill</option>
+            <option>Arrear Bill</option>
+            <option>Surrender Bill</option>
+            <option>Advances</option>
+          </select>
+          <input id="t_employee" type="text" placeholder="Employee name" required />
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <input id="t_name" type="text" placeholder="Task name (short)" required />
+          <input id="t_date" type="date" />
+        </div>
+
+        <div style="margin-top:8px">
+          <label class="small">Status</label>
+          <select id="t_status" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff">
+            <!-- options populated by JS -->
+          </select>
+        </div>
+
+        <div style="margin-top:8px" class="small">Progress updates automatically as you change status. When "ePayment done" is selected the task will close.</div>
+
+        <div class="modal-actions">
+          <button type="button" class="secondary" id="cancelTaskModal">Cancel</button>
+          <button type="submit" class="primary">Add Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
-    /* Professional minimal UI bundle
-       - Keeps previous features
-       - Closed files removed from "My Assigned Files" (archived)
-       - Next action date visually prominent (larger pill)
+    /* Full combined app:
+       - Keeps previous file tracker features and UI
+       - Adds a Tasks column with progress tracking, top floating add button
+       - Tasks stored in localStorage for demo; S.No auto-increment
+       - Dynamic progress bar and Chart.js minimal graph
        - Dates displayed as DD-MM-YYYY
-       - LocalStorage persistence for demo
     */
 
-    const STORAGE_KEY = 'file-tracker-v4';
-    const HOLIDAYS = [
-      // Maintain official holidays here (YYYY-MM-DD)
-      '2026-01-26','2026-04-14','2026-05-01','2026-08-15','2026-10-02','2026-11-04'
-    ];
+    /* -------------------------
+       Shared config & utilities
+       ------------------------- */
+    const FILE_STORAGE_KEY = 'filebuddy-files-v1';
+    const TASK_STORAGE_KEY = 'filebuddy-tasks-v1';
+    const HOLIDAYS = ['2026-01-26','2026-04-14','2026-05-01','2026-08-15','2026-10-02','2026-11-04'];
 
     const QUOTES = [
       "Small consistent steps move big files forward.",
@@ -285,7 +320,14 @@
       "Organize, act, record — build trust with every step."
     ];
 
-    // Elements
+    // Task status stages (ordered)
+    const TASK_STATUSES = [
+      "Proceedings received","Calculation sheet","Attachments signed","Draft",
+      "Issue","Ticket raised","To generate","Drafts","Submitted to Treasury",
+      "L1 Stage","L2 Stage","Pending with ATO","ePayment done"
+    ];
+
+    // Elements (files)
     const modalBackdrop = document.getElementById('modalBackdrop');
     const openFormBtn = document.getElementById('openForm');
     const cancelModalBtn = document.getElementById('cancelModal');
@@ -301,21 +343,36 @@
     const pendingCountEl = document.getElementById('pendingCount');
     const closedCountEl = document.getElementById('closedCount');
     const balanceCountEl = document.getElementById('balanceCount');
-    const pendingCloseEl = document.getElementById('pendingClose');
-    const balanceEl = document.getElementById('balance');
 
     const split_lt3 = document.getElementById('split_lt3');
     const split_3_6 = document.getElementById('split_3_6');
     const split_6_12 = document.getElementById('split_6_12');
     const split_gt12 = document.getElementById('split_gt12');
 
+    // Elements (tasks)
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskModalBackdrop = document.getElementById('taskModalBackdrop');
+    const taskForm = document.getElementById('taskForm');
+    const cancelTaskModal = document.getElementById('cancelTaskModal');
+    const taskListEl = document.getElementById('taskList');
+    const taskChartCtx = document.getElementById('taskChart').getContext('2d');
+    const taskSearch = document.getElementById('taskSearch');
+    const taskFilter = document.getElementById('taskFilter');
+
+    // Quote rotation
     const quoteEl = document.getElementById('quote');
     let quoteIndex = 0;
+    function rotateQuote(){ quoteEl.textContent = QUOTES[quoteIndex % QUOTES.length]; quoteIndex++; }
+    rotateQuote(); setInterval(rotateQuote, 10000);
 
-    let files = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    // Local storage load
+    let files = JSON.parse(localStorage.getItem(FILE_STORAGE_KEY) || '[]');
+    let tasks = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) || '[]');
 
-    // Utilities
-    function uid(){ return 'F' + Date.now().toString(36).slice(-6); }
+    /* -------------------------
+       Date helpers
+       ------------------------- */
+    function uid(prefix='F'){ return prefix + Date.now().toString(36).slice(-6); }
     function parseDateInput(v){ return v ? new Date(v + 'T00:00:00') : null; }
     function toISODate(d){ if(!d) return null; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
     function toDisplayFromISO(iso){ if(!iso) return '—'; const parts = iso.split('-'); if(parts.length !== 3) return iso; return `${parts[2]}-${parts[1]}-${parts[0]}`; }
@@ -325,17 +382,21 @@
     function adjustForWeekendAndHolidays(d){ let candidate=new Date(d); while(isWeekend(candidate) || isHoliday(candidate)){ candidate = addDays(candidate,1); } return candidate; }
     function computeNextActionDate(baseDate){ if(!baseDate) return null; const plus30 = addDays(baseDate,30); return adjustForWeekendAndHolidays(plus30); }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function monthDiff(d1, d2){ return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth()); }
 
-    // Modal controls
+    /* -------------------------
+       File tracker logic (keeps old behavior)
+       ------------------------- */
+    // Modal controls for files
     openFormBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='flex'; document.getElementById('m_subject').focus(); });
     cancelModalBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='none'; modalForm.reset(); });
     modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop){ modalBackdrop.style.display='none'; modalForm.reset(); } });
 
     // Role switch
     function getRole(){ return document.querySelector('input[name="role"]:checked').value; }
-    roleRadios.forEach(r => r.addEventListener('change', ()=>{ const rname = getRole().charAt(0).toUpperCase() + getRole().slice(1); roleLabel.textContent = rname; userRoleBadge.textContent = rname; render(); }));
+    roleRadios.forEach(r => r.addEventListener('change', ()=>{ const rname = getRole().charAt(0).toUpperCase() + getRole().slice(1); roleLabel.textContent = rname; userRoleBadge.textContent = rname; renderFiles(); }));
 
-    // Form submit
+    // File form submit
     modalForm.addEventListener('submit', e => {
       e.preventDefault();
       const subject = document.getElementById('m_subject').value.trim();
@@ -349,7 +410,7 @@
       const nextAction = computeNextActionDate(baseDate);
 
       const file = {
-        id: uid(),
+        id: uid('F'),
         subject,
         sender,
         priority,
@@ -362,15 +423,14 @@
         history: [{when:new Date().toISOString(), by:getRole(), action:'Created'}]
       };
       files.unshift(file);
-      saveAndRender();
+      saveFiles();
       modalBackdrop.style.display='none';
       modalForm.reset();
     });
 
-    function saveAndRender(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(files)); render(); }
+    function saveFiles(){ localStorage.setItem(FILE_STORAGE_KEY, JSON.stringify(files)); renderFiles(); }
 
-    // Change status: when Closed, file is archived (removed from assigned list)
-    function changeStatus(id, status){
+    function changeFileStatus(id, status){
       const f = files.find(x => x.id === id);
       if(!f) return;
       f.status = status;
@@ -380,18 +440,15 @@
         const next = computeNextActionDate(base);
         f.nextActionISO = toISODate(next);
       }
-      saveAndRender();
+      saveFiles();
     }
 
-    // Render UI
-    function render(){
+    function renderFiles(){
       const role = getRole();
       const q = (search.value || '').trim().toLowerCase();
       const status = statusFilter.value;
 
-      // Visible list excludes Closed files (archived)
       const visible = files.filter(f => {
-        if(f.status === 'Closed') return false;
         if(!f.assignedTo.toLowerCase().includes(role)) return false;
         if(status && f.status !== status) return false;
         if(q && !(f.subject.toLowerCase().includes(q) || f.id.toLowerCase().includes(q))) return false;
@@ -405,7 +462,7 @@
         visible.forEach(f => {
           const li = document.createElement('li');
           li.className = 'file-item';
-          const statusColor = f.status === 'Pending' ? 'var(--warning)' : 'var(--info)';
+          const statusColor = f.status === 'Closed' ? 'var(--success)' : (f.status === 'Pending' ? 'var(--warning)' : 'var(--info)');
           const receivedDisplay = f.receivedDateISO ? toDisplayFromISO(f.receivedDateISO) : '—';
           const dueDisplay = f.dueDateISO ? toDisplayFromISO(f.dueDateISO) : '—';
           const nextDisplay = f.nextActionISO ? toDisplayFromISO(f.nextActionISO) : '—';
@@ -430,10 +487,10 @@
           `;
           fileList.appendChild(li);
         });
-        document.querySelectorAll('.btn').forEach(b => b.onclick = () => changeStatus(b.dataset.id, b.dataset.action));
+        document.querySelectorAll('.file-item .btn').forEach(b => b.onclick = () => changeFileStatus(b.dataset.id, b.dataset.action));
       }
 
-      // Summaries (counts include archived closed files)
+      // Summaries
       const total = files.length;
       const closed = files.filter(f => f.status === 'Closed').length;
       const pending = files.filter(f => f.status !== 'Closed').length;
@@ -443,8 +500,6 @@
       pendingCountEl.textContent = pending;
       closedCountEl.textContent = closed;
       balanceCountEl.textContent = balance;
-      pendingCloseEl.textContent = files.filter(f => f.status === 'Pending' && f.nextActionISO).length;
-      balanceEl.textContent = balance;
 
       // Splits by age (exclude closed)
       const now = new Date();
@@ -463,37 +518,184 @@
       split_gt12.textContent = gt12;
     }
 
-    function monthDiff(d1, d2){
-      return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
-    }
+    search.addEventListener('input', renderFiles);
+    statusFilter.addEventListener('change', renderFiles);
 
-    // Events
-    search.addEventListener('input', render);
-    statusFilter.addEventListener('change', render);
     document.getElementById('clearBtn').addEventListener('click', ()=>{
-      if(confirm('Clear demo data? This will remove all local entries.')){ files=[]; saveAndRender(); }
+      if(confirm('Clear demo data? This will remove all local entries.')){ files=[]; saveFiles(); }
     });
 
-    // Quote rotation
-    function rotateQuote(){ quoteEl.textContent = QUOTES[quoteIndex % QUOTES.length]; quoteIndex++; }
-    rotateQuote();
-    setInterval(rotateQuote, 10000);
+    /* -------------------------
+       Tasks logic (new)
+       ------------------------- */
+    // Populate status select in task modal
+    const t_status = document.getElementById('t_status');
+    TASK_STATUSES.forEach(s => {
+      const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
+      t_status.appendChild(opt);
+    });
 
-    render();
+    // Modal controls for tasks
+    addTaskBtn.addEventListener('click', ()=>{ taskModalBackdrop.style.display='flex'; document.getElementById('t_name').focus(); });
+    cancelTaskModal.addEventListener('click', ()=>{ taskModalBackdrop.style.display='none'; taskForm.reset(); });
+    taskModalBackdrop.addEventListener('click', (e)=>{ if(e.target===taskModalBackdrop){ taskModalBackdrop.style.display='none'; taskForm.reset(); } });
 
-    // Admin/testing helpers
-    window.__FILE_TRACKER = {
-      computeNextActionDate,
-      HOLIDAYS,
-      setHolidays: (arr) => { if(Array.isArray(arr)){ while(HOLIDAYS.length) HOLIDAYS.pop(); arr.forEach(d => HOLIDAYS.push(d)); } },
-      addSample: (n=6) => {
+    // Task form submit
+    taskForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const type = document.getElementById('t_type').value;
+      const employee = document.getElementById('t_employee').value.trim();
+      const name = document.getElementById('t_name').value.trim();
+      const dateInput = document.getElementById('t_date').value;
+      const status = document.getElementById('t_status').value || TASK_STATUSES[0];
+      if(!type || !employee || !name) return;
+
+      const id = nextTaskSerial();
+      const task = {
+        id,
+        sNo: id,
+        name,
+        type,
+        employee,
+        proceedingDateISO: toISODate(parseDateInput(dateInput) || new Date()),
+        status,
+        createdAt: new Date().toISOString(),
+        closed: status === 'ePayment done'
+      };
+      tasks.unshift(task);
+      saveTasks();
+      taskModalBackdrop.style.display='none';
+      taskForm.reset();
+    });
+
+    function saveTasks(){ localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks)); renderTasks(); }
+
+    function nextTaskSerial(){ // automated S.No
+      if(tasks.length === 0) return 1;
+      const max = tasks.reduce((m,t)=> Math.max(m, t.sNo || 0), 0);
+      return max + 1;
+    }
+
+    function updateTaskStatus(id, newStatus){
+      const t = tasks.find(x => x.id === id);
+      if(!t) return;
+      t.status = newStatus;
+      if(newStatus === 'ePayment done'){ t.closed = true; }
+      saveTasks();
+    }
+
+    function renderTasks(){
+      const q = (taskSearch.value || '').trim().toLowerCase();
+      const typeFilter = taskFilter.value;
+      const visible = tasks.filter(t => {
+        if(t.closed) return false; // hide closed tasks from active list
+        if(typeFilter && t.type !== typeFilter) return false;
+        if(q && !(t.name.toLowerCase().includes(q) || t.employee.toLowerCase().includes(q))) return false;
+        return true;
+      });
+
+      taskListEl.innerHTML = '';
+      if(visible.length === 0){
+        taskListEl.innerHTML = '<li class="task-item"><div class="task-top"><div class="task-left"><strong>No active tasks</strong></div></div></li>';
+      } else {
+        visible.forEach(t => {
+          const li = document.createElement('li');
+          li.className = 'task-item';
+          const idx = TASK_STATUSES.indexOf(t.status);
+          const progress = Math.round(((idx + 1) / TASK_STATUSES.length) * 100);
+          const dateDisplay = t.proceedingDateISO ? toDisplayFromISO(t.proceedingDateISO) : '—';
+          li.innerHTML = `
+            <div class="task-top">
+              <div class="task-left">
+                <strong>${t.sNo}. ${escapeHtml(t.name)}</strong>
+                <div class="task-meta">${escapeHtml(t.type)} • ${escapeHtml(t.employee)}</div>
+                <div class="small" style="margin-top:6px;color:var(--muted)">Proceeding: ${dateDisplay}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="small" style="color:var(--muted)">Status</div>
+                <select data-id="${t.id}" class="task-status-select" style="margin-top:6px;padding:8px;border-radius:8px;border:1px solid #e6eef8;background:#fff">
+                  ${TASK_STATUSES.map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}
+                </select>
+                <div class="next-label" style="margin-top:8px">Progress</div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+              </div>
+            </div>
+            <div class="task-actions">
+              <button class="btn" data-id="${t.id}" data-action="close">Close</button>
+            </div>
+          `;
+          taskListEl.appendChild(li);
+        });
+
+        // attach events
+        document.querySelectorAll('.task-status-select').forEach(sel => {
+          sel.onchange = (e) => {
+            const id = Number(e.target.dataset.id);
+            updateTaskStatus(id, e.target.value);
+          };
+        });
+        document.querySelectorAll('.task-actions .btn').forEach(b => {
+          b.onclick = () => {
+            const id = Number(b.dataset.id);
+            // manual close (force)
+            const t = tasks.find(x => x.id === id);
+            if(!t) return;
+            t.status = 'ePayment done';
+            t.closed = true;
+            saveTasks();
+          };
+        });
+      }
+
+      renderTaskChart();
+    }
+
+    // Chart: minimalised graph showing counts by status (top 6 statuses for readability)
+    let taskChart = null;
+    function renderTaskChart(){
+      const counts = TASK_STATUSES.map(s => tasks.filter(t => t.status === s && !t.closed).length);
+      const labels = TASK_STATUSES.map(s => s.length > 18 ? s.slice(0,16)+'…' : s);
+      const data = {
+        labels,
+        datasets: [{
+          label: 'Active tasks',
+          data: counts,
+          backgroundColor: labels.map((_,i) => i === TASK_STATUSES.length-1 ? '#0f5132' : '#0b63d6')
+        }]
+      };
+      if(taskChart) taskChart.destroy();
+      taskChart = new Chart(taskChartCtx, {
+        type: 'bar',
+        data,
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { ticks: { color: '#0f172a', font: { size: 12 } } }
+          }
+        }
+      });
+    }
+
+    taskSearch.addEventListener('input', renderTasks);
+    taskFilter.addEventListener('change', renderTasks);
+
+    /* -------------------------
+       Demo helpers & persistence
+       ------------------------- */
+    // Add sample data helpers (for testing)
+    window.__FILEBUDDY = {
+      addSampleFiles: (n=5) => {
         for(let i=0;i<n;i++){
           const now = new Date();
           const created = addDays(now, -Math.floor(Math.random()*500));
           const base = addDays(created, Math.floor(Math.random()*10));
           const next = computeNextActionDate(base);
           files.unshift({
-            id: uid(),
+            id: uid('F'),
             subject: 'Sample file '+(i+1),
             sender:'Dept',
             priority:['Normal','High','Urgent'][Math.floor(Math.random()*3)],
@@ -501,14 +703,53 @@
             receivedDateISO: toISODate(created),
             dueDateISO: null,
             nextActionISO: toISODate(next),
-            status: ['Pending','Forwarded','Closed'][Math.floor(Math.random()*3)],
+            status: ['Pending','Forwarded'][Math.floor(Math.random()*2)],
             createdAt: created.toISOString(),
             history: []
           });
         }
-        saveAndRender();
+        saveFiles();
+      },
+      addSampleTasks: (n=6) => {
+        for(let i=0;i<n;i++){
+          const now = new Date();
+          const created = addDays(now, -Math.floor(Math.random()*200));
+          const status = TASK_STATUSES[Math.floor(Math.random()* (TASK_STATUSES.length - 1))];
+          const id = nextTaskSerial();
+          tasks.unshift({
+            id,
+            sNo: id,
+            name: 'Task '+(i+1),
+            type: ['Salary Bill','Arrear Bill','Surrender Bill','Advances'][Math.floor(Math.random()*4)],
+            employee: 'Employee '+(i+1),
+            proceedingDateISO: toISODate(created),
+            status,
+            createdAt: created.toISOString(),
+            closed: status === 'ePayment done'
+          });
+        }
+        saveTasks();
       }
     };
+
+    // Clear demo tasks/files
+    document.getElementById('exportBtn').addEventListener('click', ()=>{ alert('Export not implemented in demo.'); });
+
+    // Clear all data (files handled earlier)
+    // Tasks clear
+    // (Add a small control to clear tasks via console or UI if needed)
+    // For demo: add keyboard shortcut Ctrl+Shift+C to clear tasks (convenience)
+    document.addEventListener('keydown', (e) => {
+      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c'){
+        if(confirm('Clear all demo tasks?')){ tasks=[]; saveTasks(); }
+      }
+    });
+
+    /* -------------------------
+       Initial render
+       ------------------------- */
+    renderFiles();
+    renderTasks();
 
     // Service worker scaffold registration (optional)
     if('serviceWorker' in navigator){
@@ -517,3 +758,4 @@
   </script>
 </body>
 </html>
+
