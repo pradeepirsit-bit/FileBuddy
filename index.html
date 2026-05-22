@@ -1,129 +1,127 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FileBuddy — File Tracker & Tasks</title>
+  <title>FileBuddy — File & Task Tracker</title>
 
-  <!-- Chart.js for minimal graph -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js (deferred) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+
+  <!-- PWA manifest -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b63d6" />
 
   <style>
+    /* Design tokens */
     :root{
       --bg:#f6f8fb;
       --card:#ffffff;
       --accent:#0b63d6;
+      --accent-cta:#16a34a;
       --muted:#6b7280;
-      --success:#0f5132;
-      --warning:#b45309;
-      --info:#0b63d6;
-      --radius:10px;
-      --gap:12px;
-      --glass: rgba(11,99,214,0.06);
+      --text:#0f172a;
+      --radius:12px;
+      --gap:14px;
+      --shadow:0 8px 24px rgba(2,6,23,0.06);
+      --focus:3px solid rgba(11,99,214,0.14);
+      --tap:44px;
+      --max-width:1200px;
+      --ui-font:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
     }
+
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      font-family:var(--ui-font);
       background:var(--bg);
-      color:#0f172a;
+      color:var(--text);
       -webkit-font-smoothing:antialiased;
       display:flex;
-      align-items:flex-start;
       justify-content:center;
       padding:20px;
     }
-    .wrap{width:100%;max-width:1200px}
-    header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
+    .wrap{width:100%;max-width:var(--max-width)}
+
+    /* Header */
+    header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
     .brand{display:flex;flex-direction:column;gap:6px}
-    .brand h1{margin:0;font-size:20px;color:var(--accent);letter-spacing:0.2px}
+    .brand h1{margin:0;font-size:20px;color:var(--accent)}
     .brand p{margin:0;font-size:13px;color:var(--muted)}
-    .top-quote{
-      margin-top:6px;padding:10px 12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfdff);
-      border:1px solid #eef6ff;font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:10px;max-width:640px;
-    }
-    .role-switch{font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center}
+    .top-quote{margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid #eef6ff;font-size:13px;color:var(--muted);max-width:720px}
 
-    /* Two-column vertical split: left = files, right = tasks */
-    .layout{display:grid;grid-template-columns:1fr;gap:14px}
-    @media(min-width:1100px){ .layout{grid-template-columns:1fr 460px} }
+    /* Layout */
+    .layout{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:1100px){ .layout{grid-template-columns:320px 1fr 360px} }
 
-    .card{background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(2,6,23,0.04);border:1px solid #eef6ff}
-    .small{font-size:13px;color:var(--muted)}
+    .card{background:var(--card);padding:14px;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(2,6,23,0.04)}
+
+    /* Summary */
     .summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     @media(min-width:420px){ .summary-grid{grid-template-columns:repeat(4,1fr)} }
-
-    .summary-item{padding:12px;border-radius:8px;background:#fff;border:1px solid #f1f7ff;display:flex;flex-direction:column;gap:6px}
-    .summary-item .num{font-weight:700;font-size:18px;color:#0f172a}
+    .summary-item{padding:12px;border-radius:10px;background:#fff;border:1px solid #f1f7ff;display:flex;flex-direction:column;gap:6px}
+    .summary-item .num{font-weight:700;font-size:18px}
     .summary-item .label{font-size:13px;color:var(--muted)}
 
-    /* File list styles (keeps previous look) */
-    .filters{display:flex;gap:8px;margin-bottom:10px}
-    .filters input{flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff}
-    .filters select{padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff}
-
-    .file-list{list-style:none;padding:0;margin:0}
-    .file-item{display:flex;flex-direction:column;padding:12px;border-radius:10px;border:1px solid #eef4ff;margin-bottom:12px;background:linear-gradient(180deg,#fff,#fbfdff)}
-    .file-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-    .file-left{display:flex;flex-direction:column;gap:6px}
+    /* Filters & lists */
+    .filters{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+    .filters input, .filters select{
+      padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fff;min-height:44px;font-size:14px;width:100%;
+    }
+    .file-list, .task-list{list-style:none;padding:0;margin:0}
+    .file-item, .task-item{
+      display:flex;flex-direction:column;padding:12px;border-radius:10px;border:1px solid #eef4ff;margin-bottom:12px;background:#fff;
+    }
+    .file-top, .task-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .file-left, .task-left{display:flex;flex-direction:column;gap:6px}
     .meta{font-size:13px;color:var(--muted)}
-    .status-pill{font-weight:700;padding:6px 10px;border-radius:999px;font-size:13px;background:var(--glass);color:var(--info);border:1px solid rgba(11,99,214,0.12)}
-    .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
-    .btn{padding:8px 10px;border-radius:10px;border:1px solid #e6eef8;background:#fff;color:var(--accent);cursor:pointer;font-size:13px}
+    .status-pill{font-weight:700;padding:6px 10px;border-radius:999px;font-size:13px;background:rgba(11,99,214,0.06);color:var(--accent);border:1px solid rgba(11,99,214,0.08)}
+
+    /* Actions */
+    .actions, .task-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid #e6eef8;background:#fff;color:var(--accent);cursor:pointer;font-size:14px;min-height:var(--tap);display:inline-flex;align-items:center;justify-content:center}
+    .btn:focus{outline:none;box-shadow:var(--focus)}
+
+    /* Next action pill */
+    .next-action{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .next-date{font-size:15px;font-weight:700;color:var(--accent);background:#f1f8ff;padding:8px 12px;border-radius:12px;border:1px solid #e6f0ff;min-width:110px;text-align:center}
 
     /* Tasks column */
     #taskColumn{position:relative}
-    .task-list{list-style:none;padding:0;margin:0}
-    .task-item{display:flex;flex-direction:column;padding:12px;border-radius:10px;border:1px solid #eef4ff;margin-bottom:12px;background:linear-gradient(180deg,#fff,#fbfdff)}
-    .task-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-    .task-left{display:flex;flex-direction:column;gap:6px}
-    .task-meta{font-size:13px;color:var(--muted)}
-    .task-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+    .add-task-btn{position:absolute;right:16px;top:12px;width:48px;height:48px;border-radius:12px;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;box-shadow:0 8px 20px rgba(11,99,214,0.12)}
+    .progress-bar{height:12px;border-radius:8px;background:#e6eef8;margin-top:8px;overflow:hidden}
+    .progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),#2b8bf7);width:0%}
+    .chart-wrap{height:220px;display:flex;align-items:center;justify-content:center;padding:6px}
 
-    /* Add Task floating button (top-right of tasks column) */
-    .add-task-btn{
-      position:absolute;right:16px;top:12px;width:44px;height:44px;border-radius:50%;
-      background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;
-      box-shadow:0 8px 24px rgba(11,99,214,0.18);cursor:pointer;font-size:22px;
-    }
+    /* Floating CTA */
+    .fab{position:fixed;right:20px;bottom:20px;width:72px;height:72px;border-radius:16px;background:var(--accent-cta);color:#fff;border:none;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;box-shadow:0 12px 36px rgba(22,163,74,0.18);cursor:pointer}
+    .fab:focus{outline:none;box-shadow:var(--focus)}
 
     /* Modal */
     .modal-backdrop{position:fixed;inset:0;background:rgba(10,20,40,0.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:60}
     .modal{width:100%;max-width:720px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 12px 40px rgba(2,6,23,0.18)}
-    .modal h3{margin:0 0 8px 0;font-size:18px}
     .row{display:flex;gap:10px}
     .row > *{flex:1}
-    input[type="text"], input[type="date"], select, textarea{padding:10px;border:1px solid #e6eef8;border-radius:10px;font-size:14px;width:100%;background:#fbfdff}
     .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
-    .primary{background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-    .secondary{background:#fff;border:1px solid #e6eef8;padding:10px 14px;border-radius:10px;cursor:pointer}
 
-    /* Progress bar */
-    .progress-bar{height:12px;border-radius:8px;background:#e6eef8;margin-top:8px;overflow:hidden}
-    .progress-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),#2b8bf7);width:0%}
-
-    /* Next action pill (files) */
-    .next-action{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-    .next-label{font-size:12px;color:var(--muted)}
-    .next-date{font-size:16px;font-weight:800;color:#0b63d6;background:#f1f8ff;padding:6px 10px;border-radius:10px;border:1px solid #e6f0ff;min-width:110px;text-align:center}
-
-    footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
-    .badge{padding:6px 10px;border-radius:999px;font-size:12px;background:#f1f8ff;color:var(--info);border:1px solid #e6f0ff}
+    /* Accessibility helpers */
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
     /* Responsive tweaks */
     @media(max-width:1100px){
-      .add-task-btn{position:fixed;right:18px;top:90px}
+      .fab{right:16px;bottom:16px;width:64px;height:64px;border-radius:12px;font-size:26px}
+      .add-task-btn{position:fixed;right:16px;top:84px}
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="wrap" id="app">
     <header>
-      <div class="brand">
+      <div class="brand" aria-hidden>
         <h1>FileBuddy</h1>
-        <p class="small">Assistant & Junior Assistant — File tracker + Task progress</p>
-        <div class="top-quote" id="quote">Loading motivational quote…</div>
+        <p class="small">File & Task tracker — fast, accessible, offline-ready</p>
+        <div class="top-quote" id="quote" aria-live="polite">Loading motivational quote…</div>
       </div>
 
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
@@ -135,25 +133,25 @@
       </div>
     </header>
 
-    <div class="layout">
-      <!-- Left: File System (keeps old code & features) -->
-      <div class="card" id="fileColumn">
-        <h3 style="margin:0 0 8px 0">File Tracker</h3>
+    <main class="layout" role="main">
+      <!-- Left: Summary + quick files -->
+      <section class="card" aria-labelledby="summaryHeading">
+        <h2 id="summaryHeading" style="margin:0 0 12px 0;font-size:16px">Overview</h2>
 
-        <div class="summary-grid" id="summaryGrid">
-          <div class="summary-item">
+        <div class="summary-grid" aria-hidden>
+          <div class="summary-item" role="group" aria-label="Total files">
             <div class="num" id="totalFiles">0</div>
             <div class="label">Total Files</div>
           </div>
-          <div class="summary-item">
+          <div class="summary-item" role="group" aria-label="Pending files">
             <div class="num" id="pendingCount">0</div>
             <div class="label">Pending</div>
           </div>
-          <div class="summary-item">
+          <div class="summary-item" role="group" aria-label="Closed files">
             <div class="num" id="closedCount">0</div>
             <div class="label">Closed</div>
           </div>
-          <div class="summary-item">
+          <div class="summary-item" role="group" aria-label="Balance">
             <div class="num" id="balanceCount">0</div>
             <div class="label">Balance</div>
           </div>
@@ -162,77 +160,88 @@
         <hr style="margin:12px 0;border:none;border-top:1px solid #eef6ff" />
 
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div class="filters" style="flex:1">
-            <input id="search" type="text" placeholder="Search by subject or ID" />
-            <select id="statusFilter">
+          <div class="filters" style="flex:1" role="search" aria-label="Search files">
+            <input id="search" type="search" placeholder="Search by subject or ID" aria-label="Search files" />
+            <select id="statusFilter" aria-label="Filter by status">
               <option value="">All</option><option>Pending</option><option>Forwarded</option><option>Closed</option>
             </select>
           </div>
+
           <div style="margin-left:12px;display:flex;gap:8px">
-            <button class="secondary btn" id="exportBtn" title="(Demo) Export not implemented">Export</button>
-            <button class="secondary btn" id="clearBtn">Clear Demo Data</button>
+            <button class="btn" id="exportBtn" title="Export (demo)">Export</button>
+            <button class="btn" id="clearBtn" title="Clear demo data">Clear</button>
           </div>
         </div>
 
-        <ul id="fileList" class="file-list" aria-live="polite"></ul>
+        <ul id="fileList" class="file-list" aria-live="polite" aria-label="Assigned files"></ul>
 
         <div style="margin-top:12px" class="small">Pending Files — Age Split</div>
         <div style="display:flex;gap:8px;margin-top:8px">
-          <div style="flex:1" class="card">
+          <div style="flex:1" class="card" aria-hidden>
             <div class="small">Less than 3 months</div>
             <div style="font-weight:700" id="split_lt3">0</div>
           </div>
-          <div style="flex:1" class="card">
+          <div style="flex:1" class="card" aria-hidden>
             <div class="small">3 to 6 months</div>
             <div style="font-weight:700" id="split_3_6">0</div>
           </div>
-          <div style="flex:1" class="card">
+          <div style="flex:1" class="card" aria-hidden>
             <div class="small">6 to 12 months</div>
             <div style="font-weight:700" id="split_6_12">0</div>
           </div>
-          <div style="flex:1" class="card">
+          <div style="flex:1" class="card" aria-hidden>
             <div class="small">Over 1 year</div>
             <div style="font-weight:700" id="split_gt12">0</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Right: Tasks column (new) -->
-      <div class="card" id="taskColumn">
-        <h3 style="margin:0 0 8px 0">Tasks — Progress Tracker</h3>
+      <!-- Center: Detailed files -->
+      <section class="card" aria-labelledby="filesHeading">
+        <h2 id="filesHeading" style="margin:0 0 12px 0;font-size:16px">My Assigned Files</h2>
+        <div class="small" style="margin-bottom:8px">Files assigned to the selected role. Closed files are archived.</div>
+        <ul id="fileListMain" class="file-list" aria-live="polite" aria-label="Assigned files detailed"></ul>
+      </section>
 
-        <!-- Floating add task button (top-right) -->
-        <button class="add-task-btn" id="addTaskBtn" title="Add Task">+</button>
+      <!-- Right: Tasks -->
+      <aside class="card" id="taskColumn" aria-labelledby="tasksHeading">
+        <h2 id="tasksHeading" style="margin:0 0 12px 0;font-size:16px">Tasks — Progress</h2>
+
+        <button class="add-task-btn" id="addTaskBtn" aria-label="Add task">+</button>
 
         <div style="margin-top:8px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
-          <input id="taskSearch" type="text" placeholder="Search tasks by name or employee" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff" />
-          <select id="taskFilter" style="padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff">
+          <input id="taskSearch" type="search" placeholder="Search tasks or employee" aria-label="Search tasks" style="flex:1;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fff" />
+          <select id="taskFilter" aria-label="Filter task type" style="padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fff">
             <option value="">All Types</option>
             <option>Salary Bill</option><option>Arrear Bill</option><option>Surrender Bill</option><option>Advances</option>
           </select>
         </div>
 
-        <ul id="taskList" class="task-list" aria-live="polite"></ul>
+        <ul id="taskList" class="task-list" aria-live="polite" aria-label="Active tasks"></ul>
 
-        <div style="margin-top:12px">
-          <canvas id="taskChart" height="180"></canvas>
+        <div class="chart-wrap" aria-hidden>
+          <canvas id="taskChart" height="220" aria-hidden="true"></canvas>
         </div>
-      </div>
-    </div>
+      </aside>
+    </main>
 
-    <footer><small>Prototype — local demo. Holiday list editable in script for production use.</small></footer>
+    <footer style="margin-top:18px;text-align:center;color:var(--muted);font-size:13px">Prototype — PWA demo. Add icons and server sync for production.</footer>
   </div>
 
-  <!-- Global floating Add File button (keeps previous) -->
-  <button class="fab" id="openForm" title="Add file">+</button>
+  <!-- Floating Add File CTA -->
+  <button class="fab" id="openForm" aria-label="Add file">+</button>
 
-  <!-- Modal for adding files (keeps previous) -->
-  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
-    <div class="modal" role="document">
-      <h3>Add / Register File</h3>
+  <!-- File Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">Add / Register File</h3>
       <form id="modalForm" autocomplete="off">
+        <label class="sr-only" for="m_subject">Subject</label>
         <input id="m_subject" name="subject" type="text" placeholder="Subject (brief)" required />
+
+        <label class="sr-only" for="m_sender">Sender</label>
         <input id="m_sender" name="sender" type="text" placeholder="Sender (office/person)" />
+
         <div class="row" style="margin-top:8px">
           <select id="m_priority" name="priority" aria-label="Priority">
             <option value="Normal">Normal</option>
@@ -244,134 +253,74 @@
             <option>Assistant</option>
           </select>
         </div>
+
         <div class="row" style="margin-top:8px">
           <input id="m_receivedDate" name="receivedDate" type="date" aria-label="Date of receipt" />
           <input id="m_dueDate" name="dueDate" type="date" aria-label="Action date (optional)" />
         </div>
-        <div style="margin-top:10px" class="small">Next action will be auto-calculated (30 days rule; weekends & holidays adjusted)</div>
+
+        <div style="margin-top:10px" class="small">Next action auto-calculated (30 days; weekends & holidays adjusted)</div>
 
         <div class="modal-actions">
-          <button type="button" class="secondary" id="cancelModal">Cancel</button>
-          <button type="submit" class="primary">Add File</button>
+          <button type="button" class="btn" id="cancelModal">Cancel</button>
+          <button type="submit" class="btn" style="background:var(--accent);color:#fff;border:none">Add File</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Modal for adding tasks -->
-  <div class="modal-backdrop" id="taskModalBackdrop" role="dialog" aria-modal="true">
-    <div class="modal" role="document">
-      <h3>Add Task</h3>
+  <!-- Task Modal -->
+  <div class="modal-backdrop" id="taskModalBackdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document" aria-labelledby="taskModalTitle">
+      <h3 id="taskModalTitle">Add Task</h3>
       <form id="taskForm" autocomplete="off">
         <div class="row">
-          <select id="t_type" required>
+          <select id="t_type" required aria-label="Task type">
             <option value="">Select Task Type</option>
             <option>Salary Bill</option>
             <option>Arrear Bill</option>
             <option>Surrender Bill</option>
             <option>Advances</option>
           </select>
-          <input id="t_employee" type="text" placeholder="Employee name" required />
+          <input id="t_employee" type="text" placeholder="Employee name" aria-label="Employee name" required />
         </div>
 
         <div class="row" style="margin-top:8px">
-          <input id="t_name" type="text" placeholder="Task name (short)" required />
-          <input id="t_date" type="date" />
+          <input id="t_name" type="text" placeholder="Task name (short)" aria-label="Task name" required />
+          <input id="t_date" type="date" aria-label="Proceeding date" />
         </div>
 
         <div style="margin-top:8px">
-          <label class="small">Status</label>
-          <select id="t_status" required style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fbfdff">
-            <!-- options populated by JS -->
-          </select>
+          <label class="small" for="t_status">Status</label>
+          <select id="t_status" required aria-label="Task status" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef8;background:#fff"></select>
         </div>
 
-        <div style="margin-top:8px" class="small">Progress updates automatically as you change status. When "ePayment done" is selected the task will close.</div>
+        <div style="margin-top:8px" class="small">Progress updates automatically as you change status. "ePayment done" closes the task.</div>
 
         <div class="modal-actions">
-          <button type="button" class="secondary" id="cancelTaskModal">Cancel</button>
-          <button type="submit" class="primary">Add Task</button>
+          <button type="button" class="btn" id="cancelTaskModal">Cancel</button>
+          <button type="submit" class="btn" style="background:var(--accent);color:#fff;border:none">Add Task</button>
         </div>
       </form>
     </div>
   </div>
 
   <script>
-    /* Full combined app:
-       - Keeps previous file tracker features and UI
-       - Adds a Tasks column with progress tracking, top floating add button
-       - Tasks stored in localStorage for demo; S.No auto-increment
-       - Dynamic progress bar and Chart.js minimal graph
-       - Dates displayed as DD-MM-YYYY
+    /* Professional, accessible PWA app script
+       - IndexedDB persistence
+       - Offline sync queue (placeholder)
+       - Doughnut chart for tasks
+       - Accessible controls and keyboard focus
     */
 
-    /* -------------------------
-       Shared config & utilities
-       ------------------------- */
-    const FILE_STORAGE_KEY = 'filebuddy-files-v1';
-    const TASK_STORAGE_KEY = 'filebuddy-tasks-v1';
+    /* Utilities */
     const HOLIDAYS = ['2026-01-26','2026-04-14','2026-05-01','2026-08-15','2026-10-02','2026-11-04'];
-
-    const QUOTES = [
-      "Small consistent steps move big files forward.",
-      "Clarity, action, accountability — repeat.",
-      "A tracked file is a closed file in waiting.",
-      "Do the next right thing for the file today.",
-      "Organize, act, record — build trust with every step."
-    ];
-
-    // Task status stages (ordered)
     const TASK_STATUSES = [
       "Proceedings received","Calculation sheet","Attachments signed","Draft",
       "Issue","Ticket raised","To generate","Drafts","Submitted to Treasury",
       "L1 Stage","L2 Stage","Pending with ATO","ePayment done"
     ];
 
-    // Elements (files)
-    const modalBackdrop = document.getElementById('modalBackdrop');
-    const openFormBtn = document.getElementById('openForm');
-    const cancelModalBtn = document.getElementById('cancelModal');
-    const modalForm = document.getElementById('modalForm');
-    const fileList = document.getElementById('fileList');
-    const search = document.getElementById('search');
-    const statusFilter = document.getElementById('statusFilter');
-    const roleRadios = document.querySelectorAll('input[name="role"]');
-    const roleLabel = document.getElementById('roleLabel');
-    const userRoleBadge = document.getElementById('userRoleBadge');
-
-    const totalFilesEl = document.getElementById('totalFiles');
-    const pendingCountEl = document.getElementById('pendingCount');
-    const closedCountEl = document.getElementById('closedCount');
-    const balanceCountEl = document.getElementById('balanceCount');
-
-    const split_lt3 = document.getElementById('split_lt3');
-    const split_3_6 = document.getElementById('split_3_6');
-    const split_6_12 = document.getElementById('split_6_12');
-    const split_gt12 = document.getElementById('split_gt12');
-
-    // Elements (tasks)
-    const addTaskBtn = document.getElementById('addTaskBtn');
-    const taskModalBackdrop = document.getElementById('taskModalBackdrop');
-    const taskForm = document.getElementById('taskForm');
-    const cancelTaskModal = document.getElementById('cancelTaskModal');
-    const taskListEl = document.getElementById('taskList');
-    const taskChartCtx = document.getElementById('taskChart').getContext('2d');
-    const taskSearch = document.getElementById('taskSearch');
-    const taskFilter = document.getElementById('taskFilter');
-
-    // Quote rotation
-    const quoteEl = document.getElementById('quote');
-    let quoteIndex = 0;
-    function rotateQuote(){ quoteEl.textContent = QUOTES[quoteIndex % QUOTES.length]; quoteIndex++; }
-    rotateQuote(); setInterval(rotateQuote, 10000);
-
-    // Local storage load
-    let files = JSON.parse(localStorage.getItem(FILE_STORAGE_KEY) || '[]');
-    let tasks = JSON.parse(localStorage.getItem(TASK_STORAGE_KEY) || '[]');
-
-    /* -------------------------
-       Date helpers
-       ------------------------- */
     function uid(prefix='F'){ return prefix + Date.now().toString(36).slice(-6); }
     function parseDateInput(v){ return v ? new Date(v + 'T00:00:00') : null; }
     function toISODate(d){ if(!d) return null; const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
@@ -384,20 +333,258 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function monthDiff(d1, d2){ return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth()); }
 
-    /* -------------------------
-       File tracker logic (keeps old behavior)
-       ------------------------- */
-    // Modal controls for files
-    openFormBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='flex'; document.getElementById('m_subject').focus(); });
-    cancelModalBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='none'; modalForm.reset(); });
-    modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop){ modalBackdrop.style.display='none'; modalForm.reset(); } });
+    /* IndexedDB wrapper */
+    const DB_NAME = 'filebuddy-db';
+    const DB_VERSION = 1;
+    let dbPromise = null;
+    function openDb(){
+      if(dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve,reject)=>{
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if(!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
+          if(!db.objectStoreNames.contains('tasks')) db.createObjectStore('tasks', { keyPath: 'id' });
+          if(!db.objectStoreNames.contains('syncQueue')) db.createObjectStore('syncQueue', { keyPath: 'qid', autoIncrement: true });
+        };
+        req.onsuccess = ()=>resolve(req.result);
+        req.onerror = ()=>reject(req.error);
+      });
+      return dbPromise;
+    }
+    async function idbPut(store,item){ const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(item); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+    async function idbGetAll(store){ const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(store,'readonly'); const r=tx.objectStore(store).getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+    async function idbDelete(store,key){ const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).delete(key); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+    async function idbAddToQueue(entry){ const db=await openDb(); return new Promise((res,rej)=>{ const tx=db.transaction('syncQueue','readwrite'); tx.objectStore('syncQueue').add(entry); tx.oncomplete=()=>res(true); tx.onerror=()=>rej(tx.error); }); }
+    async function idbGetQueue(){ return idbGetAll('syncQueue'); }
+    async function idbClearQueueItem(qid){ return idbDelete('syncQueue', qid); }
 
-    // Role switch
+    /* DOM refs */
+    const quoteEl = document.getElementById('quote');
+    const roleRadios = document.querySelectorAll('input[name="role"]');
+    const userRoleBadge = document.getElementById('userRoleBadge');
+
+    const totalFilesEl = document.getElementById('totalFiles');
+    const pendingCountEl = document.getElementById('pendingCount');
+    const closedCountEl = document.getElementById('closedCount');
+    const balanceCountEl = document.getElementById('balanceCount');
+
+    const split_lt3 = document.getElementById('split_lt3');
+    const split_3_6 = document.getElementById('split_3_6');
+    const split_6_12 = document.getElementById('split_6_12');
+    const split_gt12 = document.getElementById('split_gt12');
+
+    const searchInput = document.getElementById('search');
+    const statusFilter = document.getElementById('statusFilter');
+    const fileList = document.getElementById('fileList');
+    const fileListMain = document.getElementById('fileListMain');
+
+    const openFormBtn = document.getElementById('openForm');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalForm = document.getElementById('modalForm');
+    const cancelModal = document.getElementById('cancelModal');
+
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskModalBackdrop = document.getElementById('taskModalBackdrop');
+    const taskForm = document.getElementById('taskForm');
+    const cancelTaskModal = document.getElementById('cancelTaskModal');
+    const taskListEl = document.getElementById('taskList');
+    const taskChartCtx = document.getElementById('taskChart').getContext('2d');
+    const taskSearch = document.getElementById('taskSearch');
+    const taskFilter = document.getElementById('taskFilter');
+    const t_status = document.getElementById('t_status');
+
+    /* Caches */
+    let filesCache = [];
+    let tasksCache = [];
+    let taskChart = null;
+
+    /* Offline queue */
+    async function queueForSync(type,payload){
+      await idbAddToQueue({type,payload,createdAt:new Date().toISOString()});
+      if(navigator.onLine) processSyncQueue();
+    }
+    async function processSyncQueue(){
+      const queue = await idbGetQueue();
+      for(const q of queue){
+        try{
+          // production: POST to server; demo: remove from queue
+          await idbClearQueueItem(q.qid);
+        }catch(e){}
+      }
+    }
+    window.addEventListener('online', ()=>processSyncQueue());
+
+    /* Seed data */
+    function demoFiles(){
+      const now = new Date();
+      const f1 = { id: uid('F'), subject: 'Budget Allocation — Dept A', sender:'Finance Dept', priority:'High', assignedTo:'Junior Assistant', receivedDateISO:toISODate(addDays(now,-10)), dueDateISO:toISODate(addDays(now,20)), nextActionISO:toISODate(computeNextActionDate(now)), status:'Pending', createdAt:now.toISOString(), history:[] };
+      const f2 = JSON.parse(JSON.stringify(f1)); f2.id = uid('F'); f2.subject = 'Audit File — Section B'; f2.assignedTo = 'Assistant';
+      return [f1,f2];
+    }
+    function demoTasks(){
+      const now = new Date();
+      return [
+        { id: Date.now()+1, sNo:1, name:'Salary Bill — May', type:'Salary Bill', employee:'Ravi', proceedingDateISO:toISODate(addDays(now,-5)), status:'Proceedings received', createdAt:now.toISOString(), closed:false },
+        { id: Date.now()+2, sNo:2, name:'Arrear Bill — Q1', type:'Arrear Bill', employee:'Meena', proceedingDateISO:toISODate(addDays(now,-40)), status:'Draft', createdAt:now.toISOString(), closed:false },
+        { id: Date.now()+3, sNo:3, name:'Advance — Travel', type:'Advances', employee:'Kumar', proceedingDateISO:toISODate(addDays(now,-80)), status:'ePayment done', createdAt:now.toISOString(), closed:true }
+      ];
+    }
+
+    /* Persistence helpers */
+    async function loadAll(){
+      const f = await idbGetAll('files');
+      const t = await idbGetAll('tasks');
+      filesCache = f.length ? f : demoFiles();
+      tasksCache = t.length ? t : demoTasks();
+      if(!f.length) for(const file of filesCache) await idbPut('files', file);
+      if(!t.length) for(const task of tasksCache) await idbPut('tasks', task);
+    }
+    async function saveFile(file){ await idbPut('files', file); filesCache = await idbGetAll('files'); await queueForSync('file', file); }
+    async function saveTask(task){ await idbPut('tasks', task); tasksCache = await idbGetAll('tasks'); await queueForSync('task', task); }
+    async function updateTaskStatusLocal(id,status){
+      const db = await openDb();
+      return new Promise((res,rej)=>{
+        const tx = db.transaction('tasks','readwrite');
+        const store = tx.objectStore('tasks');
+        const req = store.get(id);
+        req.onsuccess = async ()=>{
+          const obj = req.result;
+          if(!obj) return res(false);
+          obj.status = status;
+          if(status === 'ePayment done') obj.closed = true;
+          store.put(obj);
+          tx.oncomplete = async ()=>{ tasksCache = await idbGetAll('tasks'); await queueForSync('task_update',{id,status}); res(true); };
+        };
+        req.onerror = ()=>rej(req.error);
+      });
+    }
+
+    /* Rendering: Files */
     function getRole(){ return document.querySelector('input[name="role"]:checked').value; }
-    roleRadios.forEach(r => r.addEventListener('change', ()=>{ const rname = getRole().charAt(0).toUpperCase() + getRole().slice(1); roleLabel.textContent = rname; userRoleBadge.textContent = rname; renderFiles(); }));
+    roleRadios.forEach(r => r.addEventListener('change', ()=>{ userRoleBadge.textContent = getRole().charAt(0).toUpperCase() + getRole().slice(1); renderFiles(); }));
 
-    // File form submit
-    modalForm.addEventListener('submit', e => {
+    async function renderFiles(){
+      filesCache = await idbGetAll('files');
+      const role = getRole();
+      const q = (searchInput.value || '').trim().toLowerCase();
+      const status = statusFilter.value;
+
+      const visible = filesCache.filter(f=>{
+        if(!f.assignedTo.toLowerCase().includes(role)) return false;
+        if(status && f.status !== status) return false;
+        if(q && !(f.subject.toLowerCase().includes(q) || f.id.toLowerCase().includes(q))) return false;
+        return true;
+      });
+
+      // quick list
+      fileList.innerHTML = '';
+      visible.slice(0,6).forEach(f=>{
+        const li = document.createElement('li'); li.className='file-item';
+        li.innerHTML = `<div class="file-top"><div class="file-left"><strong>${escapeHtml(f.subject)}</strong><div class="meta">${f.id} • ${f.priority} • ${escapeHtml(f.sender||'—')}</div></div><div class="next-action"><div class="status-pill">${f.status}</div><div class="next-date">${f.nextActionISO ? toDisplayFromISO(f.nextActionISO) : '—'}</div></div></div>`;
+        fileList.appendChild(li);
+      });
+
+      // detailed list
+      fileListMain.innerHTML = '';
+      visible.forEach(f=>{
+        const li = document.createElement('li'); li.className='file-item';
+        li.innerHTML = `<div class="file-top"><div class="file-left"><strong>${escapeHtml(f.subject)}</strong><div class="meta">${f.id} • ${f.priority} • ${escapeHtml(f.sender||'—')}</div><div class="small" style="margin-top:6px;color:var(--muted)">Received: ${f.receivedDateISO ? toDisplayFromISO(f.receivedDateISO) : '—'} • Due: ${f.dueDateISO ? toDisplayFromISO(f.dueDateISO) : '—'}</div></div><div class="next-action"><div class="status-pill">${f.status}</div><div class="next-date">${f.nextActionISO ? toDisplayFromISO(f.nextActionISO) : '—'}</div></div></div><div class="actions" role="group" aria-label="File actions"><button class="btn" data-id="${f.id}" data-action="Noted">Noted</button><button class="btn" data-id="${f.id}" data-action="Forwarded">Forward</button><button class="btn" data-id="${f.id}" data-action="Closed">Close</button></div>`;
+        fileListMain.appendChild(li);
+      });
+
+      document.querySelectorAll('.file-item .btn').forEach(b => b.onclick = async ()=>{ const id=b.dataset.id, action=b.dataset.action; await changeFileStatus(id, action); });
+
+      // summaries
+      const total = filesCache.length;
+      const closed = filesCache.filter(f=>f.status==='Closed').length;
+      const pending = filesCache.filter(f=>f.status!=='Closed').length;
+      totalFilesEl.textContent = total; closedCountEl.textContent = closed; pendingCountEl.textContent = pending; balanceCountEl.textContent = total - closed;
+
+      // age splits
+      const now = new Date(); let lt3=0,_3_6=0,_6_12=0,gt12=0;
+      filesCache.filter(f=>f.status!=='Closed').forEach(f=>{ const created=new Date(f.createdAt); const months=monthDiff(created,now); if(months<3) lt3++; else if(months<6) _3_6++; else if(months<12) _6_12++; else gt12++; });
+      split_lt3.textContent = lt3; split_3_6.textContent = _3_6; split_6_12.textContent = _6_12; split_gt12.textContent = gt12;
+    }
+
+    async function changeFileStatus(id,status){
+      const db = await openDb();
+      return new Promise((res,rej)=>{
+        const tx = db.transaction('files','readwrite');
+        const store = tx.objectStore('files');
+        const req = store.get(id);
+        req.onsuccess = async ()=>{
+          const obj = req.result;
+          if(!obj) return res(false);
+          obj.status = status;
+          obj.history = obj.history || [];
+          obj.history.push({when:new Date().toISOString(),by:getRole(),action:status});
+          if(status==='Forwarded' || status==='Noted'){ const base = obj.nextActionISO ? parseDateInput(obj.nextActionISO) : new Date(); obj.nextActionISO = toISODate(computeNextActionDate(base)); }
+          store.put(obj);
+          tx.oncomplete = async ()=>{ filesCache = await idbGetAll('files'); await queueForSync('file_update',{id,status}); renderFiles(); res(true); };
+        };
+        req.onerror = ()=>rej(req.error);
+      });
+    }
+
+    /* Tasks rendering & chart */
+    TASK_STATUSES.forEach(s => { const opt=document.createElement('option'); opt.value=s; opt.textContent=s; t_status.appendChild(opt); });
+
+    addTaskBtn.addEventListener('click', ()=>{ taskModalBackdrop.style.display='flex'; taskModalBackdrop.setAttribute('aria-hidden','false'); document.getElementById('t_name').focus(); });
+    cancelTaskModal.addEventListener('click', ()=>{ taskModalBackdrop.style.display='none'; taskModalBackdrop.setAttribute('aria-hidden','true'); taskForm.reset(); });
+
+    taskForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const type = document.getElementById('t_type').value;
+      const employee = document.getElementById('t_employee').value.trim();
+      const name = document.getElementById('t_name').value.trim();
+      const dateInput = document.getElementById('t_date').value;
+      const status = document.getElementById('t_status').value || TASK_STATUSES[0];
+      if(!type || !employee || !name) return;
+      const id = Date.now();
+      const task = { id, sNo: nextTaskSerial(), name, type, employee, proceedingDateISO: toISODate(parseDateInput(dateInput)||new Date()), status, createdAt:new Date().toISOString(), closed: status==='ePayment done' };
+      await saveTask(task);
+      taskModalBackdrop.style.display='none'; taskModalBackdrop.setAttribute('aria-hidden','true'); taskForm.reset();
+      renderTasks();
+    });
+
+    function nextTaskSerial(){ const max = tasksCache.reduce((m,t)=>Math.max(m,t.sNo||0),0); return max+1; }
+
+    async function renderTasks(){
+      tasksCache = await idbGetAll('tasks');
+      const q = (taskSearch.value||'').trim().toLowerCase();
+      const typeFilter = taskFilter.value;
+      const visible = tasksCache.filter(t=>{ if(t.closed) return false; if(typeFilter && t.type !== typeFilter) return false; if(q && !(t.name.toLowerCase().includes(q) || t.employee.toLowerCase().includes(q))) return false; return true; });
+
+      taskListEl.innerHTML = '';
+      visible.forEach(t=>{
+        const li = document.createElement('li'); li.className='task-item';
+        const idx = TASK_STATUSES.indexOf(t.status);
+        const progress = Math.round(((idx+1)/TASK_STATUSES.length)*100);
+        li.innerHTML = `<div class="task-top"><div class="task-left"><strong>${t.sNo}. ${escapeHtml(t.name)}</strong><div class="task-meta">${escapeHtml(t.type)} • ${escapeHtml(t.employee)}</div><div class="small" style="margin-top:6px;color:var(--muted)">Proceeding: ${t.proceedingDateISO ? toDisplayFromISO(t.proceedingDateISO) : '—'}</div></div><div style="text-align:right"><div class="small" style="color:var(--muted)">Status</div><select data-id="${t.id}" class="task-status-select" style="margin-top:6px;padding:8px;border-radius:8px;border:1px solid #e6eef8;background:#fff">${TASK_STATUSES.map(s=>`<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select><div class="next-label" style="margin-top:8px">Progress</div><div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div></div></div><div class="task-actions"><button class="btn" data-id="${t.id}" data-action="close">Close</button></div>`;
+        taskListEl.appendChild(li);
+      });
+
+      document.querySelectorAll('.task-status-select').forEach(sel=>{ sel.onchange = async (e)=>{ const id = Number(e.target.dataset.id); await updateTaskStatusLocal(id, e.target.value); renderTasks(); }; });
+      document.querySelectorAll('.task-actions .btn').forEach(b=>{ b.onclick = async ()=>{ const id = Number(b.dataset.id); await updateTaskStatusLocal(id,'ePayment done'); renderTasks(); }; });
+
+      renderTaskChart();
+    }
+
+    function renderTaskChart(){
+      const counts = TASK_STATUSES.map(s => tasksCache.filter(t => t.status === s && !t.closed).length);
+      const labels = TASK_STATUSES.map(s => s.length>18 ? s.slice(0,16)+'…' : s);
+      const data = { labels, datasets:[{ data:counts, backgroundColor: labels.map((_,i)=> i===TASK_STATUSES.length-1 ? '#0f5132' : '#0b63d6') }] };
+      if(taskChart) taskChart.destroy();
+      taskChart = new Chart(taskChartCtx, { type:'doughnut', data, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right'}} } });
+    }
+
+    /* Modal & file form */
+    openFormBtn.addEventListener('click', ()=>{ modalBackdrop.style.display='flex'; modalBackdrop.setAttribute('aria-hidden','false'); document.getElementById('m_subject').focus(); });
+    cancelModal.addEventListener('click', ()=>{ modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); modalForm.reset(); });
+    modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop){ modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); modalForm.reset(); } });
+
+    modalForm.addEventListener('submit', async (e)=>{
       e.preventDefault();
       const subject = document.getElementById('m_subject').value.trim();
       if(!subject) return;
@@ -409,353 +596,38 @@
       const baseDate = parseDateInput(dueDateInput) || parseDateInput(receivedDateInput) || new Date();
       const nextAction = computeNextActionDate(baseDate);
 
-      const file = {
-        id: uid('F'),
-        subject,
-        sender,
-        priority,
-        assignedTo: assignTo,
-        receivedDateISO: toISODate(parseDateInput(receivedDateInput) || new Date()),
-        dueDateISO: toISODate(parseDateInput(dueDateInput) || null),
-        nextActionISO: toISODate(nextAction),
-        status: 'Pending',
-        createdAt: new Date().toISOString(),
-        history: [{when:new Date().toISOString(), by:getRole(), action:'Created'}]
-      };
-      files.unshift(file);
-      saveFiles();
-      modalBackdrop.style.display='none';
-      modalForm.reset();
+      const file = { id: uid('F'), subject, sender, priority, assignedTo, receivedDateISO: toISODate(parseDateInput(receivedDateInput) || new Date()), dueDateISO: toISODate(parseDateInput(dueDateInput) || null), nextActionISO: toISODate(nextAction), status:'Pending', createdAt:new Date().toISOString(), history:[{when:new Date().toISOString(),by:getRole(),action:'Created'}] };
+      await saveFile(file);
+      modalBackdrop.style.display='none'; modalBackdrop.setAttribute('aria-hidden','true'); modalForm.reset();
+      renderFiles();
     });
 
-    function saveFiles(){ localStorage.setItem(FILE_STORAGE_KEY, JSON.stringify(files)); renderFiles(); }
-
-    function changeFileStatus(id, status){
-      const f = files.find(x => x.id === id);
-      if(!f) return;
-      f.status = status;
-      f.history.push({when:new Date().toISOString(), by:getRole(), action:status});
-      if(status === 'Forwarded' || status === 'Noted'){
-        const base = f.nextActionISO ? parseDateInput(f.nextActionISO) : new Date();
-        const next = computeNextActionDate(base);
-        f.nextActionISO = toISODate(next);
+    /* Small helpers */
+    document.getElementById('exportBtn').addEventListener('click', ()=>alert('Export not implemented in demo.'));
+    document.getElementById('clearBtn').addEventListener('click', async ()=>{
+      if(confirm('Clear demo data? This will remove all local entries.')){
+        const db = await openDb();
+        const tx = db.transaction(['files','tasks','syncQueue'],'readwrite');
+        tx.objectStore('files').clear(); tx.objectStore('tasks').clear(); tx.objectStore('syncQueue').clear();
+        tx.oncomplete = async ()=>{ filesCache=[]; tasksCache=[]; renderFiles(); renderTasks(); };
       }
-      saveFiles();
-    }
+    });
 
-    function renderFiles(){
-      const role = getRole();
-      const q = (search.value || '').trim().toLowerCase();
-      const status = statusFilter.value;
+    // Quote rotation
+    const QUOTES = ["Small consistent steps move big files forward.","Clarity, action, accountability — repeat.","A tracked file is a closed file in waiting.","Do the next right thing for the file today.","Organize, act, record — build trust with every step."];
+    let qi = 0; function rotateQuote(){ quoteEl.textContent = QUOTES[qi % QUOTES.length]; qi++; } rotateQuote(); setInterval(rotateQuote, 10000);
 
-      const visible = files.filter(f => {
-        if(!f.assignedTo.toLowerCase().includes(role)) return false;
-        if(status && f.status !== status) return false;
-        if(q && !(f.subject.toLowerCase().includes(q) || f.id.toLowerCase().includes(q))) return false;
-        return true;
-      });
-
-      fileList.innerHTML = '';
-      if(visible.length === 0){
-        fileList.innerHTML = '<li class="file-item"><div class="file-top"><div class="file-left"><strong>No files</strong></div></div></li>';
-      } else {
-        visible.forEach(f => {
-          const li = document.createElement('li');
-          li.className = 'file-item';
-          const statusColor = f.status === 'Closed' ? 'var(--success)' : (f.status === 'Pending' ? 'var(--warning)' : 'var(--info)');
-          const receivedDisplay = f.receivedDateISO ? toDisplayFromISO(f.receivedDateISO) : '—';
-          const dueDisplay = f.dueDateISO ? toDisplayFromISO(f.dueDateISO) : '—';
-          const nextDisplay = f.nextActionISO ? toDisplayFromISO(f.nextActionISO) : '—';
-          li.innerHTML = `
-            <div class="file-top">
-              <div class="file-left">
-                <strong>${escapeHtml(f.subject)}</strong>
-                <div class="meta">${f.id} • ${f.priority} • ${escapeHtml(f.sender || '—')}</div>
-                <div class="small" style="margin-top:6px;color:var(--muted)">Received: ${receivedDisplay} • Due: ${dueDisplay}</div>
-              </div>
-              <div class="next-action">
-                <div class="status-pill" style="background:transparent;border:1px solid rgba(11,99,214,0.06);color:${statusColor}">${f.status}</div>
-                <div class="next-label">Next</div>
-                <div class="next-date">${nextDisplay}</div>
-              </div>
-            </div>
-            <div class="actions">
-              <button class="btn" data-id="${f.id}" data-action="Noted">Noted</button>
-              <button class="btn" data-id="${f.id}" data-action="Forwarded">Forward</button>
-              <button class="btn" data-id="${f.id}" data-action="Closed">Close</button>
-            </div>
-          `;
-          fileList.appendChild(li);
-        });
-        document.querySelectorAll('.file-item .btn').forEach(b => b.onclick = () => changeFileStatus(b.dataset.id, b.dataset.action));
-      }
-
-      // Summaries
-      const total = files.length;
-      const closed = files.filter(f => f.status === 'Closed').length;
-      const pending = files.filter(f => f.status !== 'Closed').length;
-      const balance = total - closed;
-
-      totalFilesEl.textContent = total;
-      pendingCountEl.textContent = pending;
-      closedCountEl.textContent = closed;
-      balanceCountEl.textContent = balance;
-
-      // Splits by age (exclude closed)
-      const now = new Date();
-      let lt3=0, _3_6=0, _6_12=0, gt12=0;
-      files.filter(f => f.status !== 'Closed').forEach(f => {
-        const created = new Date(f.createdAt);
-        const months = monthDiff(created, now);
-        if(months < 3) lt3++;
-        else if(months < 6) _3_6++;
-        else if(months < 12) _6_12++;
-        else gt12++;
-      });
-      split_lt3.textContent = lt3;
-      split_3_6.textContent = _3_6;
-      split_6_12.textContent = _6_12;
-      split_gt12.textContent = gt12;
-    }
-
-    search.addEventListener('input', renderFiles);
+    // Filters
+    searchInput.addEventListener('input', renderFiles);
     statusFilter.addEventListener('change', renderFiles);
-
-    document.getElementById('clearBtn').addEventListener('click', ()=>{
-      if(confirm('Clear demo data? This will remove all local entries.')){ files=[]; saveFiles(); }
-    });
-
-    /* -------------------------
-       Tasks logic (new)
-       ------------------------- */
-    // Populate status select in task modal
-    const t_status = document.getElementById('t_status');
-    TASK_STATUSES.forEach(s => {
-      const opt = document.createElement('option'); opt.value = s; opt.textContent = s;
-      t_status.appendChild(opt);
-    });
-
-    // Modal controls for tasks
-    addTaskBtn.addEventListener('click', ()=>{ taskModalBackdrop.style.display='flex'; document.getElementById('t_name').focus(); });
-    cancelTaskModal.addEventListener('click', ()=>{ taskModalBackdrop.style.display='none'; taskForm.reset(); });
-    taskModalBackdrop.addEventListener('click', (e)=>{ if(e.target===taskModalBackdrop){ taskModalBackdrop.style.display='none'; taskForm.reset(); } });
-
-    // Task form submit
-    taskForm.addEventListener('submit', e => {
-      e.preventDefault();
-      const type = document.getElementById('t_type').value;
-      const employee = document.getElementById('t_employee').value.trim();
-      const name = document.getElementById('t_name').value.trim();
-      const dateInput = document.getElementById('t_date').value;
-      const status = document.getElementById('t_status').value || TASK_STATUSES[0];
-      if(!type || !employee || !name) return;
-
-      const id = nextTaskSerial();
-      const task = {
-        id,
-        sNo: id,
-        name,
-        type,
-        employee,
-        proceedingDateISO: toISODate(parseDateInput(dateInput) || new Date()),
-        status,
-        createdAt: new Date().toISOString(),
-        closed: status === 'ePayment done'
-      };
-      tasks.unshift(task);
-      saveTasks();
-      taskModalBackdrop.style.display='none';
-      taskForm.reset();
-    });
-
-    function saveTasks(){ localStorage.setItem(TASK_STORAGE_KEY, JSON.stringify(tasks)); renderTasks(); }
-
-    function nextTaskSerial(){ // automated S.No
-      if(tasks.length === 0) return 1;
-      const max = tasks.reduce((m,t)=> Math.max(m, t.sNo || 0), 0);
-      return max + 1;
-    }
-
-    function updateTaskStatus(id, newStatus){
-      const t = tasks.find(x => x.id === id);
-      if(!t) return;
-      t.status = newStatus;
-      if(newStatus === 'ePayment done'){ t.closed = true; }
-      saveTasks();
-    }
-
-    function renderTasks(){
-      const q = (taskSearch.value || '').trim().toLowerCase();
-      const typeFilter = taskFilter.value;
-      const visible = tasks.filter(t => {
-        if(t.closed) return false; // hide closed tasks from active list
-        if(typeFilter && t.type !== typeFilter) return false;
-        if(q && !(t.name.toLowerCase().includes(q) || t.employee.toLowerCase().includes(q))) return false;
-        return true;
-      });
-
-      taskListEl.innerHTML = '';
-      if(visible.length === 0){
-        taskListEl.innerHTML = '<li class="task-item"><div class="task-top"><div class="task-left"><strong>No active tasks</strong></div></div></li>';
-      } else {
-        visible.forEach(t => {
-          const li = document.createElement('li');
-          li.className = 'task-item';
-          const idx = TASK_STATUSES.indexOf(t.status);
-          const progress = Math.round(((idx + 1) / TASK_STATUSES.length) * 100);
-          const dateDisplay = t.proceedingDateISO ? toDisplayFromISO(t.proceedingDateISO) : '—';
-          li.innerHTML = `
-            <div class="task-top">
-              <div class="task-left">
-                <strong>${t.sNo}. ${escapeHtml(t.name)}</strong>
-                <div class="task-meta">${escapeHtml(t.type)} • ${escapeHtml(t.employee)}</div>
-                <div class="small" style="margin-top:6px;color:var(--muted)">Proceeding: ${dateDisplay}</div>
-              </div>
-              <div style="text-align:right">
-                <div class="small" style="color:var(--muted)">Status</div>
-                <select data-id="${t.id}" class="task-status-select" style="margin-top:6px;padding:8px;border-radius:8px;border:1px solid #e6eef8;background:#fff">
-                  ${TASK_STATUSES.map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}
-                </select>
-                <div class="next-label" style="margin-top:8px">Progress</div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
-              </div>
-            </div>
-            <div class="task-actions">
-              <button class="btn" data-id="${t.id}" data-action="close">Close</button>
-            </div>
-          `;
-          taskListEl.appendChild(li);
-        });
-
-        // attach events
-        document.querySelectorAll('.task-status-select').forEach(sel => {
-          sel.onchange = (e) => {
-            const id = Number(e.target.dataset.id);
-            updateTaskStatus(id, e.target.value);
-          };
-        });
-        document.querySelectorAll('.task-actions .btn').forEach(b => {
-          b.onclick = () => {
-            const id = Number(b.dataset.id);
-            // manual close (force)
-            const t = tasks.find(x => x.id === id);
-            if(!t) return;
-            t.status = 'ePayment done';
-            t.closed = true;
-            saveTasks();
-          };
-        });
-      }
-
-      renderTaskChart();
-    }
-
-    // Chart: minimalised graph showing counts by status (top 6 statuses for readability)
-    let taskChart = null;
-    function renderTaskChart(){
-      const counts = TASK_STATUSES.map(s => tasks.filter(t => t.status === s && !t.closed).length);
-      const labels = TASK_STATUSES.map(s => s.length > 18 ? s.slice(0,16)+'…' : s);
-      const data = {
-        labels,
-        datasets: [{
-          label: 'Active tasks',
-          data: counts,
-          backgroundColor: labels.map((_,i) => i === TASK_STATUSES.length-1 ? '#0f5132' : '#0b63d6')
-        }]
-      };
-      if(taskChart) taskChart.destroy();
-      taskChart = new Chart(taskChartCtx, {
-        type: 'bar',
-        data,
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { display: false },
-            y: { ticks: { color: '#0f172a', font: { size: 12 } } }
-          }
-        }
-      });
-    }
-
     taskSearch.addEventListener('input', renderTasks);
     taskFilter.addEventListener('change', renderTasks);
 
-    /* -------------------------
-       Demo helpers & persistence
-       ------------------------- */
-    // Add sample data helpers (for testing)
-    window.__FILEBUDDY = {
-      addSampleFiles: (n=5) => {
-        for(let i=0;i<n;i++){
-          const now = new Date();
-          const created = addDays(now, -Math.floor(Math.random()*500));
-          const base = addDays(created, Math.floor(Math.random()*10));
-          const next = computeNextActionDate(base);
-          files.unshift({
-            id: uid('F'),
-            subject: 'Sample file '+(i+1),
-            sender:'Dept',
-            priority:['Normal','High','Urgent'][Math.floor(Math.random()*3)],
-            assignedTo: Math.random()>0.5?'Junior Assistant':'Assistant',
-            receivedDateISO: toISODate(created),
-            dueDateISO: null,
-            nextActionISO: toISODate(next),
-            status: ['Pending','Forwarded'][Math.floor(Math.random()*2)],
-            createdAt: created.toISOString(),
-            history: []
-          });
-        }
-        saveFiles();
-      },
-      addSampleTasks: (n=6) => {
-        for(let i=0;i<n;i++){
-          const now = new Date();
-          const created = addDays(now, -Math.floor(Math.random()*200));
-          const status = TASK_STATUSES[Math.floor(Math.random()* (TASK_STATUSES.length - 1))];
-          const id = nextTaskSerial();
-          tasks.unshift({
-            id,
-            sNo: id,
-            name: 'Task '+(i+1),
-            type: ['Salary Bill','Arrear Bill','Surrender Bill','Advances'][Math.floor(Math.random()*4)],
-            employee: 'Employee '+(i+1),
-            proceedingDateISO: toISODate(created),
-            status,
-            createdAt: created.toISOString(),
-            closed: status === 'ePayment done'
-          });
-        }
-        saveTasks();
-      }
-    };
+    // Service worker
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
 
-    // Clear demo tasks/files
-    document.getElementById('exportBtn').addEventListener('click', ()=>{ alert('Export not implemented in demo.'); });
-
-    // Clear all data (files handled earlier)
-    // Tasks clear
-    // (Add a small control to clear tasks via console or UI if needed)
-    // For demo: add keyboard shortcut Ctrl+Shift+C to clear tasks (convenience)
-    document.addEventListener('keydown', (e) => {
-      if(e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c'){
-        if(confirm('Clear all demo tasks?')){ tasks=[]; saveTasks(); }
-      }
-    });
-
-    /* -------------------------
-       Initial render
-       ------------------------- */
-    renderFiles();
-    renderTasks();
-
-    // Service worker scaffold registration (optional)
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
-    }
+    // Init
+    (async function init(){ await loadAll(); renderFiles(); renderTasks(); processSyncQueue(); })();
   </script>
 </body>
 </html>
-
